@@ -1,6 +1,8 @@
 # Cours Python pour débutants
 
-![Logo Python](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/500px-Python-logo-notext.svg.png)
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/500px-Python-logo-notext.svg.png" alt="Logo Python" width="250">
+</p>
 
 ## Introduction
 
