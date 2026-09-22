@@ -1,6 +1,12 @@
 # Cours Python pour débutants
 
-Apprendre Python pour le développement et le réseau.
+<p align="center">
+  <img src="https://www.python.org/static/community_logos/python-logo-master-v3-TM.png" alt="Logo Python" width="300">
+</p>
+
+## Introduction
+
+Ce dépôt regroupe un cours progressif pour apprendre Python en partant de zéro, avec pour objectif de couvrir aussi bien le développement classique (variables, conditions, boucles, fonctions, fichiers) que des bases utiles pour le réseau. Chaque chapitre est organisé dans son propre dossier numéroté, avec des notes explicatives (`notes.md`) et des exemples de code exécutables. Le cours se termine par des exercices et des petits projets permettant de mettre en pratique l'ensemble des notions vues.
 
 ## Arborescence
 
