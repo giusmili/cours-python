@@ -1,5 +1,7 @@
 # Projets
 
+![Illustration : fusée](https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f680.png)
+
 Cette section propose de petits projets complets qui combinent toutes les notions du cours (fonctions, listes, fichiers, conditions) dans un programme fonctionnel.
 
 ## Exemple
