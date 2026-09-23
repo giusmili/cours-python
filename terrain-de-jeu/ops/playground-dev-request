@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly REQUEST_DIR='/run/playground-dev'
+readonly REQUEST="$REQUEST_DIR/deploy.request"
+readonly REPO_URL='https://github.com/giusmili/cours-python.git'
+readonly BRANCH='kevin/missions'
+
+sha="${1:-}"
+if [ -z "$sha" ]; then
+  sha="$(git ls-remote "$REPO_URL" "refs/heads/$BRANCH" | awk 'NR == 1 {print $1}')"
+fi
+
+[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || {
+  echo 'Invalid or unavailable kevin/missions SHA.' >&2
+  exit 2
+}
+
+[ -d "$REQUEST_DIR" ] || {
+  echo 'Preview deploy broker is not installed.' >&2
+  exit 3
+}
+
+if [ -e "$REQUEST" ]; then
+  echo 'A preview deploy request is already queued.' >&2
+  exit 4
+fi
+
+umask 027
+tmp="$REQUEST_DIR/.deploy.request.$$"
+trap 'rm -f "$tmp"' EXIT
+printf '%s\n' "$sha" > "$tmp"
+mv "$tmp" "$REQUEST"
+trap - EXIT
+
+printf 'Queued playground-dev deployment: %s\n' "$sha"
