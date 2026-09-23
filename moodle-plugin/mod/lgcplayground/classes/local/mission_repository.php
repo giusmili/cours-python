@@ -49,6 +49,17 @@ final class mission_repository {
      * @return array
      */
     public static function first_for_track(array $pack, string $track): array {
+        return self::for_track($pack, $track)[0];
+    }
+
+    /**
+     * Return all missions for a track in pedagogical order.
+     *
+     * @param array $pack
+     * @param string $track
+     * @return array
+     */
+    public static function for_track(array $pack, string $track): array {
         $missions = array_values(array_filter(
             $pack['missions'],
             static fn(array $mission): bool => ($mission['track'] ?? $pack['track']) === $track,
@@ -63,7 +74,21 @@ final class mission_repository {
             static fn(array $left, array $right): int => ($left['order'] ?? 0) <=> ($right['order'] ?? 0),
         );
 
-        return $missions[0];
+        return $missions;
+    }
+
+    /**
+     * Return stable mission ids for a track.
+     *
+     * @param array $pack
+     * @param string $track
+     * @return string[]
+     */
+    public static function ids_for_track(array $pack, string $track): array {
+        return array_map(
+            static fn(array $mission): string => $mission['id'],
+            self::for_track($pack, $track),
+        );
     }
 
     /**
