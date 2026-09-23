@@ -12,7 +12,7 @@ function lgcplayground_supports(string $feature): bool|string|null {
         FEATURE_MOD_INTRO => true,
         FEATURE_SHOW_DESCRIPTION => true,
         FEATURE_COMPLETION_HAS_RULES => true,
-        FEATURE_BACKUP_MOODLE2 => false,
+        FEATURE_BACKUP_MOODLE2 => true,
         default => null,
     };
 }

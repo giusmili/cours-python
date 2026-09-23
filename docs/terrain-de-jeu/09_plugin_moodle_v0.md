@@ -270,3 +270,9 @@ Le déroulé humain recommandé est documenté dans `10_demo_interne.md`.
 
 À ce stade, le prochain gain pour une démo ne vient plus d'une refonte technique. Une démonstration interne est présentable ; avant usage réel en classe, il reste notamment le contenu, backup/restore, validation d'environnement et les outils enseignant éventuels.
 
+## Checkpoint — backup/restore Moodle
+
+Le plugin déclare désormais `FEATURE_BACKUP_MOODLE2` et sauvegarde/restaure l’instance d’activité. Quand la sauvegarde Moodle inclut les données utilisateurs, `lgcplayground_progress` est inclus avec mapping Moodle des utilisateurs ; sans données utilisateurs, la progression n’est pas exportée.
+
+Validation LOCAL Moodle 5.2.3+ : test PHPUnit réel backup → restore vers un nouveau cours, avec configuration d’activité et progression élève restaurées. La tranche ne change ni le schéma SQL ni le runtime navigateur.
+

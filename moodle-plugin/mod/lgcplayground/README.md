@@ -35,11 +35,11 @@ Implemented in the current progress slice:
 - authenticated AJAX persistence;
 - cross-device restoration of attempts/pass state;
 - explicit Moodle automatic completion when all required missions are passed;
-- privacy metadata/export/deletion support for stored progress.
+- privacy metadata/export/deletion support for stored progress;
+- Moodle backup/restore for activity configuration and, when user data is included, learner mission progress.
 
 Not implemented yet:
 - migration of the remaining mission catalogue;
-- backup/restore;
 - grading;
 - Roads binding automation.
 
