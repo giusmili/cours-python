@@ -38,6 +38,8 @@ $props = [
     'mission' => $mission,
     'progress' => $progress,
     'canPersist' => $canpersist,
+    'ajaxUrl' => (new moodle_url('/lib/ajax/service.php'))->out(false),
+    'sesskey' => sesskey(),
 ];
 
 $templatecontext = [
