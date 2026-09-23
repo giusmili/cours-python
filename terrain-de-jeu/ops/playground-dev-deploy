@@ -7,8 +7,10 @@ readonly SOURCE_DIR='/opt/playground-dev-source'
 readonly STATE_DIR='/var/lib/playground-dev'
 readonly STATE_FILE="$STATE_DIR/deployed_commit"
 readonly ENV_FILE='/home/moodle-agent/.config/playground-dev/env'
-readonly COMPOSE_FILE='docker-compose.preview.yml'
-readonly PUBLIC_HEALTH='https://playground-dev.lagrandeclasse.fr/api/health'
+readonly DOCKERFILE='/usr/local/libexec/playground-dev-Dockerfile'
+readonly PUBLIC_BASE='https://playground-dev.lagrandeclasse.fr'
+readonly PUBLIC_HEALTH="$PUBLIC_BASE/api/health"
+readonly LIVE_CONTAINER='playground-dev'
 
 log() { printf '[playground-dev] %s\n' "$*"; }
 fail() { printf '[playground-dev] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -24,8 +26,11 @@ exec 9>/run/playground-dev/deploy.lock
 flock -n 9 || fail 'another playground deployment is already running'
 
 [ -f "$ENV_FILE" ] || fail "missing preview environment: $ENV_FILE"
+[ -f "$DOCKERFILE" ] || fail "missing root-owned Dockerfile: $DOCKERFILE"
+[ "$(stat -c '%U:%G:%a' "$DOCKERFILE")" = 'root:root:644' ] || fail 'preview Dockerfile ownership/mode is not root:root:644'
 [ -S /var/run/docker.sock ] || fail 'Docker socket unavailable'
 docker info >/dev/null 2>&1 || fail 'Docker daemon unavailable'
+docker network inspect traefik_network >/dev/null 2>&1 || fail 'traefik_network is unavailable'
 
 if [ ! -d "$SOURCE_DIR/.git" ]; then
   log 'creating dedicated source clone'
@@ -97,53 +102,115 @@ if [ "$current" = "$requested_sha" ]; then
 fi
 
 if [ -n "$current" ]; then
+  [[ "$current" =~ ^[0-9a-f]{40}$ ]] || fail 'deployed state contains an invalid SHA'
   "${GIT[@]}" cat-file -e "$current^{commit}" 2>/dev/null || fail "deployed state refers to unavailable commit: $current"
   "${GIT[@]}" merge-base --is-ancestor "$current" "$requested_sha" || fail 'rollback/non-fast-forward deployment refused'
 fi
 
 log "checking out candidate $requested_sha"
 "${GIT[@]}" reset --hard "$requested_sha" >/dev/null
-
 cd "$SOURCE_DIR/terrain-de-jeu"
+
 short_sha="${requested_sha:0:12}"
+image="playground-dev:$short_sha"
 previous_tag=''
 if [ -n "$current" ]; then previous_tag="${current:0:12}"; fi
 
-export PLAYGROUND_ENV_FILE="$ENV_FILE"
-export PLAYGROUND_IMAGE_TAG="$short_sha"
-compose=(docker compose -p playground-dev -f "$COMPOSE_FILE")
+log "building $image with root-owned Dockerfile"
+docker build --file "$DOCKERFILE" --tag "$image" .
 
-"${compose[@]}" config >/dev/null
-log "building image playground-dev:$short_sha"
-"${compose[@]}" build playground
+health_args=(
+  --health-cmd "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+  --health-interval 5s
+  --health-timeout 3s
+  --health-retries 10
+  --health-start-period 5s
+)
+
+wait_healthy() {
+  local container="$1"
+  local status=''
+  for _ in $(seq 1 60); do
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true)"
+    if [ "$status" = 'healthy' ]; then return 0; fi
+    if [ "$status" = 'unhealthy' ]; then return 1; fi
+    sleep 2
+  done
+  return 1
+}
+
+candidate="playground-dev-candidate-$short_sha"
+docker rm -f "$candidate" >/dev/null 2>&1 || true
+
+log 'smoke-testing candidate image before swap'
+docker run -d \
+  --name "$candidate" \
+  --env-file "$ENV_FILE" \
+  --env NODE_ENV=production \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  "${health_args[@]}" \
+  "$image" >/dev/null
+
+if ! wait_healthy "$candidate"; then
+  docker logs --tail=120 "$candidate" || true
+  docker rm -f "$candidate" >/dev/null 2>&1 || true
+  fail 'candidate container did not become healthy'
+fi
+docker rm -f "$candidate" >/dev/null
+
+run_live() {
+  local tag="$1"
+  local live_image="playground-dev:$tag"
+
+  docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+  docker run -d \
+    --name "$LIVE_CONTAINER" \
+    --network traefik_network \
+    --env-file "$ENV_FILE" \
+    --env NODE_ENV=production \
+    --restart unless-stopped \
+    --cap-drop ALL \
+    --security-opt no-new-privileges:true \
+    "${health_args[@]}" \
+    --label 'traefik.enable=true' \
+    --label 'traefik.docker.network=traefik_network' \
+    --label 'traefik.http.routers.playground-dev.rule=Host(`playground-dev.lagrandeclasse.fr`)' \
+    --label 'traefik.http.routers.playground-dev.entrypoints=websecure' \
+    --label 'traefik.http.routers.playground-dev.tls=true' \
+    --label 'traefik.http.routers.playground-dev.tls.certresolver=letsencrypt' \
+    --label 'traefik.http.services.playground-dev.loadbalancer.server.port=3000' \
+    --label 'traefik.http.routers.playground-dev-http.rule=Host(`playground-dev.lagrandeclasse.fr`)' \
+    --label 'traefik.http.routers.playground-dev-http.entrypoints=web' \
+    --label 'traefik.http.routers.playground-dev-http.middlewares=playground-dev-https-redirect' \
+    --label 'traefik.http.middlewares.playground-dev-https-redirect.redirectscheme.scheme=https' \
+    "$live_image" >/dev/null
+}
 
 rollback() {
-  if [ -z "$previous_tag" ]; then return; fi
+  if [ -z "$previous_tag" ]; then
+    docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+    return
+  fi
   if ! docker image inspect "playground-dev:$previous_tag" >/dev/null 2>&1; then
     log "rollback image playground-dev:$previous_tag unavailable"
+    docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
     return
   fi
   log "rolling back to playground-dev:$previous_tag"
-  PLAYGROUND_IMAGE_TAG="$previous_tag" "${compose[@]}" up -d --no-build playground || true
+  run_live "$previous_tag" || true
 }
 
-log 'starting candidate container'
-if ! "${compose[@]}" up -d --no-build playground; then
+log 'swapping live preview container'
+if ! run_live "$short_sha"; then
   rollback
-  fail 'docker compose up failed'
+  fail 'could not start live container'
 fi
 
-healthy=''
-for _ in $(seq 1 60); do
-  healthy="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' playground-dev 2>/dev/null || true)"
-  if [ "$healthy" = 'healthy' ] || [ "$healthy" = 'unhealthy' ]; then break; fi
-  sleep 2
-done
-
-if [ "$healthy" != 'healthy' ]; then
-  "${compose[@]}" logs --no-color --tail=120 playground || true
+if ! wait_healthy "$LIVE_CONTAINER"; then
+  docker logs --tail=120 "$LIVE_CONTAINER" || true
   rollback
-  fail "container health is $healthy"
+  fail 'live container did not become healthy'
 fi
 
 log 'checking public HTTPS health through Traefik'
@@ -155,14 +222,19 @@ for _ in $(seq 1 30); do
   fi
   sleep 2
 done
-
 if [ "$https_ok" != 'yes' ]; then
   rollback
   fail 'public HTTPS healthcheck failed'
+fi
+
+root_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 "$PUBLIC_BASE/" || true)"
+if [ "$root_status" != '401' ]; then
+  rollback
+  fail "preview root is expected to require authentication (got HTTP $root_status)"
 fi
 
 printf '%s\n' "$requested_sha" > "$STATE_FILE"
 chmod 0644 "$STATE_FILE"
 
 log "deployed $requested_sha successfully"
-"${compose[@]}" ps
+docker ps --filter "name=^/$LIVE_CONTAINER$" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
