@@ -32,4 +32,33 @@ final class mod_lgcplayground_mod_form extends moodleform_mod {
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();
     }
+
+    /**
+     * Add the automatic completion rule.
+     *
+     * @return array
+     */
+    public function add_completion_rules(): array {
+        $mform = $this->_form;
+        $suffix = $this->get_suffix();
+        $element = 'completionpass' . $suffix;
+
+        $mform->addElement(
+            'checkbox',
+            $element,
+            '',
+            get_string('completionpass', 'mod_lgcplayground'),
+        );
+        $mform->setDefault($element, 1);
+
+        return [$element];
+    }
+
+    /**
+     * @param array $data
+     * @return bool
+     */
+    public function completion_rule_enabled($data): bool {
+        return !empty($data['completionpass' . $this->get_suffix()]);
+    }
 }
