@@ -32,7 +32,7 @@ function xmldb_lgcplayground_upgrade(int $oldversion): bool {
         $progress->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
         $progress->add_field('playgroundid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
         $progress->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
-        $progress->add_field('missionid', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, '');
+        $progress->add_field('missionid', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL);
         $progress->add_field('attempts', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
         $progress->add_field('passed', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
         $progress->add_field('timefirstattempt', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
