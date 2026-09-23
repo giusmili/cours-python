@@ -1,9 +1,7 @@
 /* global loadPyodide */
 "use strict";
 
-const PYODIDE_VERSION = "314.0.7";
-const PYODIDE_BASE =
-  "https://cdn.jsdelivr.net/pyodide/v" + PYODIDE_VERSION + "/full/";
+const PYODIDE_BASE = "/pyodide/";
 
 const emit = self.postMessage.bind(self);
 
@@ -40,7 +38,7 @@ function hardenWorkerCapabilities() {
 async function getRuntime() {
   if (!pyodidePromise) {
     pyodidePromise = (async () => {
-      importScripts(PYODIDE_BASE + "pyodide.js");
+      importScripts("/pyodide/pyodide.js");
       const runtime = await loadPyodide({ indexURL: PYODIDE_BASE });
       hardenWorkerCapabilities();
       return runtime;
