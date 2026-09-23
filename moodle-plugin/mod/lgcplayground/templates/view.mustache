@@ -1,0 +1,16 @@
+{{!
+    @template mod_lgcplayground/view
+
+    Moodle-native host for the interactive Playground application.
+}}
+<div class="mod-lgcplayground-shell">
+    {{#react}}
+    {
+        "component": "@moodle/lms/mod_lgcplayground/view",
+        "props": {{{reactprops}}},
+        "id": "lgcplayground-view-{{cmid}}",
+        "class": "mod-lgcplayground-react-root"
+    }
+    <div class="mod-lgcplayground-loading">{{loading}}</div>
+    {{/react}}
+</div>

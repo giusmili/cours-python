@@ -1,123 +1,170 @@
-# 08 — Intégration Moodle / Roads
+# 08 — Architecture Moodle / Roads
 
-## Décision d'architecture
+## Décision validée — 23 septembre 2026
 
-Le Playground reste un outil autonome.
+Le Playground devient **Moodle-native pour son cœur institutionnel**.
 
-Moodle reste la référence institutionnelle pour :
-- l'identité ;
-- les rôles et inscriptions ;
-- le contexte de cours ;
-- la complétion ;
-- les notes / résultats ;
-- le parcours global exposé par Moodle Roads.
+La cible n'est plus un backend Node séparé relié à Moodle par LTI par défaut. Le composant canonique sera une activité Moodle `mod_lgcplayground`.
 
-Moodle Roads reste Moodle-native :
-- backend et état canonique en PHP/Moodle ;
-- UI interactive TypeScript/React dans Moodle lorsque nécessaire.
+Le prototype Next.js actuel reste utile comme :
+- harnais de développement indépendant ;
+- preview protégée ;
+- référence UX ;
+- éventuellement futur shell autonome si un besoin réel apparaît.
 
-Le Playground reste séparé parce qu'il possède une autre responsabilité :
-- exécuter et tester du code élève ;
-- fournir une expérience de mission interactive ;
-- isoler les runtimes Python / Web ;
-- pouvoir évoluer plus tard vers des labs Linux, réseau ou cyber hors du processus PHP de Moodle.
+Il n'est pas supprimé et son moteur de mission n'est pas jeté.
 
-## Frontière cible
+## Répartition des responsabilités
+
+### Moodle / PHP
+
+PHP décide la vérité institutionnelle :
+- instance d'activité ;
+- contexte cours/utilisateur ;
+- capacités ;
+- paramètres du pack de missions ;
+- plus tard : tentatives, progression multi-device, validation institutionnelle, completion et éventuellement notes ;
+- endpoints serveur supportés par Moodle.
+
+Ne jamais exécuter le code élève dans PHP.
+
+### Moodle 5.2 React / TypeScript
+
+Le frontend moderne porte :
+- carte/parcours de missions ;
+- éditeur ;
+- terminal et preview ;
+- feedback, indices et débrief ;
+- moteur de mission réutilisé depuis le prototype.
+
+Le source frontend vit sous le plugin Moodle dans `js/esm/src` et utilise la toolchain ESM/TypeScript/React de Moodle 5.2.
+
+### Runtimes navigateur
+
+Python débutant :
+- Web Worker dédié ;
+- Pyodide/WASM auto-hébergé ;
+- timeout ;
+- capacités réseau coupées autant que possible ;
+- aucun passage du code élève par le serveur Moodle.
+
+HTML/CSS/JavaScript :
+- iframe sandboxée ;
+- origine opaque ;
+- CSP restrictive ;
+- pas d'accès au parent.
+
+### Futurs labs système/réseau/cyber
+
+Ils justifieront un service externe isolé :
+- containers ou VM jetables ;
+- réseau borné ;
+- aucun accès direct au processus Moodle.
+
+Ce service n'existe que lorsqu'un besoin de runtime système le rend nécessaire.
+
+## Pourquoi un module d'activité
+
+Le Playground est une activité pédagogique dans un cours : un enseignant l'ajoute, l'élève l'ouvre, travaille, réussit des missions, et Moodle doit pouvoir connaître l'état pédagogique résultant.
+
+Un `mod_` donne naturellement :
+- contexte et authentification Moodle ;
+- capabilities ;
+- intégration au cours ;
+- disponibilité ;
+- completion ;
+- gradebook si nécessaire ;
+- backup/restore à terme ;
+- visibilité dans les surfaces d'activité Moodle.
+
+Le plugin s'appelle provisoirement `mod_lgcplayground` (dossier `mod/lgcplayground`).
+
+## Relation avec Moodle Roads
+
+Roads reste séparé.
+
+Roads connaît :
+- curriculum ;
+- route pédagogique ;
+- learning bindings ;
+- achievement evidence ;
+- progression globale.
+
+Roads ne connaît pas :
+- les règles internes d'une mission Python ;
+- Pyodide ;
+- l'éditeur ;
+- les tests techniques internes du Playground.
+
+La frontière cible est une preuve Moodle stable :
 
 ```text
-Roads
-  |
-  | curriculum / route / bindings
-  v
-Moodle
-  |
-  | activité + contexte + completion
-  v
-Playground
-  |
-  | mission / code / tests / feedback
-  |
-  +---- résultat ----> Moodle
-                         |
-                         +----> Roads observe la preuve Moodle
+Roads milestone
+      |
+      | learning / evidence binding
+      v
+Moodle activity: mod_lgcplayground
+      |
+      | internal mission progression
+      v
+Playground engine
 ```
 
-Roads ne doit pas comprendre les règles internes d'une mission Python.
+Une activité Playground peut enseigner un jalon sans suffire à prouver son acquisition. Roads conserve donc sa séparation learning coverage / achievement evidence.
 
-Le binding Roads doit viser une preuve Moodle stable : activité terminée, note minimale, cours terminé, ou une future combinaison explicitement modélisée.
+## Relation avec Course Factory
 
-## Intégration recommandée : LTI 1.3
+Course Factory reste le pipeline généraliste sources -> cours Moodle reproductibles.
 
-La cible privilégiée est LTI 1.3 / LTI Advantage plutôt qu'un SSO maison ou une API privée couplée à Roads.
+Plus tard, lorsque le contrat est stable, Factory pourra éventuellement créer/configurer une activité Playground par identifiant stable de pack de missions.
 
-Capacités utiles :
-- lancement depuis Moodle sans second login ;
-- contexte cours/utilisateur/ressource ;
-- Deep Linking pour sélectionner une mission ou un parcours lors de l'ajout de l'activité ;
-- Assignment and Grade Services pour renvoyer un résultat ;
-- Names and Role Provisioning seulement si le Playground a réellement besoin d'un roster.
-
-Ne pas implémenter toutes les extensions LTI au premier passage.
-
-Ordre raisonnable :
-1. launch LTI 1.3 ;
-2. résultat / grade ;
-3. Deep Linking ;
-4. NRPS seulement si un besoin concret apparaît.
+Factory ne fabrique pas le moteur du Playground et le Playground ne devient pas un second CourseSpec.
 
 ## Persistance
 
-Le prototype utilise actuellement `localStorage`.
+Le prototype Next utilise `localStorage`. Cela reste acceptable pour le harnais autonome.
 
-C'est volontairement un adaptateur MVP, pas la future source de vérité.
+Dans Moodle :
+- l'instance d'activité existe dès le premier squelette ;
+- la progression fine par utilisateur sera ajoutée dans une table plugin dédiée après validation du premier rendu Moodle réel ;
+- le navigateur peut garder un brouillon local comme cache UX, mais Moodle deviendra la source de vérité multi-device.
 
-À terme :
-- Moodle garde la preuve pédagogique institutionnelle à gros grain ;
-- le Playground peut garder sa progression fine propre si reprise multi-device nécessaire ;
-- la couche mission ne doit pas connaître le mécanisme de stockage.
+Ne pas inventer maintenant une base séparée ou un second backend.
 
-Avant l'ajout d'une base, extraire une interface de persistance :
-- charger progression ;
-- enregistrer brouillon ;
-- enregistrer tentative ;
-- enregistrer validation.
+## Migration progressive
 
-Le premier adaptateur restera local.
-Un adaptateur serveur/LTI pourra ensuite être ajouté sans modifier les définitions de missions.
+### Phase 0 — prototype conservé
+Le Next.js existant continue de documenter et tester l'expérience.
 
-## Hébergement
+### Phase 1 — shell Moodle
+Installer `mod_lgcplayground` en LOCAL et vérifier :
+- ajout d'activité ;
+- permissions ;
+- rendu React/TypeScript ;
+- paramètres track/mission pack.
 
-Le sous-domaine autonome du Playground reste pertinent même après intégration Moodle.
+### Phase 2 — une vraie mission
+Migrer une seule mission Python complète :
+- code de départ ;
+- worker Pyodide ;
+- Run ;
+- validation ;
+- débrief.
 
-Le fait qu'un outil soit lancé depuis Moodle ne signifie pas qu'il doit être servi par PHP ou dans le même dépôt.
+### Phase 3 — état Moodle
+Ajouter :
+- table de progression/tentatives ;
+- endpoints ;
+- reprise multi-device ;
+- règle de completion explicite.
 
-## Sécurité
+### Phase 4 — catalogue
+Migrer progressivement les autres missions et connecter Roads sur une preuve Moodle stable.
 
-Ne jamais déplacer l'exécution de code élève dans le processus PHP Moodle.
+## Environnements
 
-Python débutant :
-- worker navigateur dédié ;
-- Pyodide auto-hébergé ;
-- timeout ;
-- réseau coupé après initialisation.
+LOCAL -> STAGING -> PROD.
 
-HTML/CSS/JS :
-- iframe sandboxée ;
-- origine opaque ;
-- CSP restrictive.
+La migration vers le plugin se valide d'abord sur Moodle LOCAL. STAGING seulement lorsque le plugin s'installe, s'upgrade et se désinstalle proprement.
 
-Futurs labs système/réseau :
-- infrastructure d'exécution isolée distincte du VPS applicatif Moodle.
-
-## Ce qui ne change pas
-
-Moodle Course Factory reste généraliste et séparé :
-- sources pédagogiques -> cours Moodle reproductibles.
-
-Moodle Roads :
-- programme, route, dépendances, preuves et progression globale.
-
-Playground :
-- expérience d'apprentissage par mission et exécution spécialisée.
-
-Ces trois outils collaborent mais ne fusionnent pas.
+Aucune mutation PROD pendant cette phase.

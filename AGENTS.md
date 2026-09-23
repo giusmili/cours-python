@@ -5,22 +5,27 @@ Instructions pour les agents travaillant sur le terrain de jeu du dépôt `giusm
 ## Frontière absolue : master
 - `master` appartient au travail de Gius et reste **intouché** par ce chantier.
 - Ne jamais commit, push, merge, rebase, nettoyer, déplacer ou réorganiser `master` pour le terrain de jeu.
-- La branche longue durée de référence du terrain de jeu est `kevin/missions`. Elle joue le rôle de notre branche principale.
-- Pour un développement non trivial, partir si utile de `kevin/missions` vers `dev/<sujet>`, puis réintégrer dans `kevin/missions`.
+- La branche longue durée de référence du terrain de jeu est `kevin/missions`.
+- Pour un développement non trivial, partir de `kevin/missions` vers `dev/<sujet>`, puis réintégrer par fast-forward lorsque les tests sont verts.
 - Aucun merge vers `master` sans demande explicite du propriétaire du dépôt.
+- Nettoyer les branches `dev/*` devenues totalement ancêtres de `kevin/missions`; ne jamais supprimer une branche qui contient encore des commits uniques.
 
 ## AgentCtl / coordination
+Projet repo : `cours-python-terrain-de-jeu`.
+Ressource : `repo:giusmili/cours-python`.
 
-### Travail sur le repo
-Projet AgentCtl : `cours-python-terrain-de-jeu`.
+Toute mutation partagée doit :
+1. vérifier sessions/leases et état Git ;
+2. démarrer une session AgentCtl ;
+3. acquérir le lease exact ;
+4. maintenir le heartbeat si nécessaire ;
+5. revérifier branche/HEAD avant intégration ;
+6. libérer le lease à la fin.
 
-Ressource :
-- `repo:giusmili/cours-python`.
-
-Le fichier `.agentctl.json` de cette branche identifie ce projet.
+Ne jamais contourner le git gate AgentCtl. Pour un push local, utiliser le worktree/session prévu ou `agentctl run`.
 
 ### Déploiement preview LGC
-Projet AgentCtl : `cours-python-playground-deploy`.
+Projet : `cours-python-playground-deploy`.
 
 Ressources :
 - `host:vps-lgc/git`
@@ -28,66 +33,56 @@ Ressources :
 - `deploy:vps-lgc/playground-dev`
 - `service:playground-dev`
 
-Le broker de déploiement root-owned acquiert lui-même ce bundle via `agentctl-host-run` et maintient le heartbeat pendant le build/deploy. Déployer un SHA déjà présent dans `kevin/missions` ne mute pas GitHub et ne nécessite pas le lease repo.
+Le broker root-owned acquiert lui-même ses leases et déploie uniquement `kevin/missions`.
 
-Pour les mutations GitHub, toute écriture partagée doit respecter AgentCtl :
-1. vérifier l'état / les sessions / leases ;
-2. démarrer une session adaptée ;
-3. acquérir le lease exact `repo:giusmili/cours-python` ;
-4. maintenir le heartbeat pendant un travail long ;
-5. revérifier lease, branche et HEAD avant commit/push ;
-6. terminer la session et libérer le lease en fin de passe.
+## Architecture produit
 
-Si un projet n'est pas enregistré sur une autre machine, utiliser le broker restreint documenté par AgentCtl ; ne jamais chercher, afficher ou copier le jeton admin.
+### Cœur cible
+Le cœur institutionnel devient une activité Moodle :
+- composant : `mod_lgcplayground` ;
+- chemin repo : `moodle-plugin/mod/lgcplayground/` ;
+- PHP/Moodle : permissions, instance, état institutionnel, future completion/progression/endpoints ;
+- Moodle 5.2 React/TypeScript : UI interactive.
 
-RDC n'est pas l'outil par défaut : préférer GitHub/connecteurs quand ils suffisent. Utiliser RDC quand l'accès machine, les tests locaux, AgentCtl ou une ressource locale le nécessitent.
+### Runtimes élève
+- Python débutant : Web Worker + Pyodide/WASM côté navigateur ;
+- HTML/CSS/JS : iframe sandboxée à origine opaque ;
+- futurs labs Linux/réseau/cyber : runner externe isolé seulement lorsque nécessaire ;
+- ne jamais exécuter de code élève dans PHP/Moodle.
 
-## Preview LGC
-- URL : `https://playground-dev.lagrandeclasse.fr`
-- Source déployée : exclusivement `kevin/missions`.
-- Le repo est public : le VPS peut fetch en HTTPS, aucune deploy key GitHub n'est requise.
-- Aucun secret VPS ne doit être stocké dans le repo.
-- La preview est protégée par Basic Auth ; les identifiants vivent uniquement dans `/home/moodle-agent/.config/playground-dev/env` sur le VPS.
-- `moodle-agent` n'a pas accès au démon Docker et ne doit pas être ajouté au groupe `docker`.
-- Le runtime privilégié passe par le broker documenté dans `terrain-de-jeu/DEPLOY_PREVIEW.md`.
-- Le bootstrap du broker est une opération root one-shot ; après installation, `moodle-agent` ne fait qu'écrire une requête SHA bornée via `playground-dev-request`.
-- Le déploiement root n'utilise jamais un Compose contrôlé par Git comme frontière de sécurité : Dockerfile, réseau, labels, nom de conteneur et options sensibles sont figés dans des fichiers root-owned installés par le bootstrap.
+### Prototype autonome
+`terrain-de-jeu/` reste un harnais de développement et une preview de référence. Ne pas le supprimer lors de la migration Moodle.
+
+### Écosystème
+- Course Factory construit les cours Moodle ;
+- Roads organise curriculum, route et preuves ;
+- Playground fournit l'expérience de pratique interactive ;
+- Roads se lie à des preuves Moodle stables, pas aux règles internes d'une mission.
 
 ## Organisation
-- `docs/terrain-de-jeu/` : cadrage, sources, benchmark, roadmap.
-- `terrain-de-jeu/` : application interactive.
-- Les cours existants de Gius restent à leur place tant qu'il travaille dessus. Ne pas les déplacer vers un autre dossier sans synchronisation et accord.
+- `docs/terrain-de-jeu/` : cadrage et décisions ;
+- `terrain-de-jeu/` : prototype/harnais Next.js ;
+- `moodle-plugin/mod/lgcplayground/` : plugin Moodle cible ;
+- les cours existants de Gius restent à leur place.
 
-## Produit
-Plateforme de missions de développement bilingue FR/EN.
+## Preview
+URL : `https://playground-dev.lagrandeclasse.fr`.
 
-Premiers parcours :
-1. Python ;
-2. Web : HTML + CSS, puis JavaScript.
-
-Boucle cible :
-`mission -> tentative -> exécution/preview -> feedback -> validation -> débrief -> bonus`.
-
-Pas de second CourseSpec : Moodle Course Factory reste l'outil généraliste d'intégration Moodle.
-
-## Sécurité
-- Ne jamais exécuter du code élève non fiable directement sur le serveur applicatif.
-- Python débutant : privilégier une exécution navigateur isolée.
-- HTML/CSS/JS : preview dans une iframe sandboxée.
-- Futurs labs Linux/réseau/cyber : environnement isolé distinct de Moodle et du serveur applicatif.
+La preview autonome reste protégée par Basic Auth et sert exclusivement `kevin/missions`. Aucun secret VPS dans Git.
 
 ## Tests
-Avant intégration dans `kevin/missions`, exécuter au minimum :
+
+### Prototype Next
 - `npm ci`
 - `npm run type-check`
 - `npm run build`
 - `npm audit --audit-level=moderate`
 
-Pour les changements de packaging/déploiement :
-- `bash -n` et `shellcheck` sur les helpers shell ;
-- construire `ops/Dockerfile.preview` localement ;
-- vérifier le conteneur avec `/api/health` ;
-- vérifier HTTP 401 sans identifiants et HTTP 200 avec identifiants ;
-- valider la syntaxe systemd des unités du broker.
+### Plugin Moodle
+Avant intégration :
+- `php -l` sur tous les fichiers PHP ;
+- validation XML de `db/install.xml` ;
+- build Moodle ESM/React dès qu'un Moodle LOCAL est disponible ;
+- installation/upgrade LOCAL avant STAGING.
 
 Toujours indiquer les tests réellement exécutés et les limites.

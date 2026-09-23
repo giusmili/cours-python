@@ -1,0 +1,58 @@
+.mod-lgcplayground-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.mod-lgcplayground-app {
+    padding: 2rem;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: 1.5rem;
+    background:
+        radial-gradient(circle at top left, rgba(99, 230, 255, 0.12), transparent 36rem),
+        var(--bs-body-bg);
+}
+
+.mod-lgcplayground-kicker {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.mod-lgcplayground-hero h2 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 4rem);
+}
+
+.mod-lgcplayground-hero p {
+    max-width: 60rem;
+    margin: 1rem 0 0;
+    opacity: 0.75;
+}
+
+.mod-lgcplayground-architecture {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.mod-lgcplayground-architecture > div {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 1rem;
+}
+
+.mod-lgcplayground-architecture span {
+    opacity: 0.7;
+}
+
+@media (max-width: 700px) {
+    .mod-lgcplayground-architecture {
+        grid-template-columns: 1fr;
+    }
+}
