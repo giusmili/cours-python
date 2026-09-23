@@ -14,7 +14,7 @@ use completion_info;
  * @package mod_lgcplayground
  */
 final class record_attempt_test extends advanced_testcase {
-    public function test_failed_then_passed_validation_updates_progress_and_completion(): void {
+    public function test_failed_then_all_passed_updates_progress_and_completion(): void {
         global $DB;
 
         $this->resetAfterTest();
@@ -40,15 +40,31 @@ final class record_attempt_test extends advanced_testcase {
         $this->assertFalse($failed['passed']);
         $this->assertFalse($failed['activitypassed']);
 
-        $passed = record_attempt::execute(
+        $passedp0 = record_attempt::execute(
             (int)$activity->cmid,
             'python-00-terminal',
             true,
         );
-        $this->assertSame(2, $passed['attempts']);
-        $this->assertTrue($passed['passed']);
-        $this->assertTrue($passed['activitypassed']);
-        $this->assertGreaterThan(0, $passed['timepassed']);
+        $this->assertSame(2, $passedp0['attempts']);
+        $this->assertTrue($passedp0['passed']);
+        $this->assertFalse($passedp0['activitypassed']);
+        $this->assertGreaterThan(0, $passedp0['timepassed']);
+
+        $passedp1 = record_attempt::execute(
+            (int)$activity->cmid,
+            'python-01-variables',
+            true,
+        );
+        $this->assertTrue($passedp1['passed']);
+        $this->assertFalse($passedp1['activitypassed']);
+
+        $passedp2 = record_attempt::execute(
+            (int)$activity->cmid,
+            'python-02-types',
+            true,
+        );
+        $this->assertTrue($passedp2['passed']);
+        $this->assertTrue($passedp2['activitypassed']);
 
         $stored = $DB->get_record('lgcplayground_progress', [
             'playgroundid' => $activity->id,

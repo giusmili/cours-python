@@ -63,6 +63,128 @@
         "kind": "python",
         "expectedOutput": "SYSTEM ONLINE"
       }
+    },
+    {
+      "id": "python-01-variables",
+      "order": 1,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Identifier le pilote",
+        "en": "Identify the pilot"
+      },
+      "scenario": {
+        "fr": "Le terminal répond, mais le poste de contrôle ne sait toujours pas qui pilote la station. Les deux informations doivent être stockées proprement avant transmission.",
+        "en": "The terminal is alive, but control still does not know who is piloting the station. Store the two pieces of information cleanly before transmitting them."
+      },
+      "objective": {
+        "fr": "Modifie les deux variables pour afficher exactement PILOT Ada AGE 36.",
+        "en": "Change the two variables so the output is exactly PILOT Ada AGE 36."
+      },
+      "starter": "# Mission 1\npilot_name = \"?\"\npilot_age = 0\n\nprint(\"PILOT\", pilot_name, \"AGE\", pilot_age)\n",
+      "hints": [
+        {
+          "fr": "Une chaîne de caractères se place entre guillemets, par exemple pilot_name = \"Ada\".",
+          "en": "A string goes between quotes, for example pilot_name = \"Ada\"."
+        },
+        {
+          "fr": "Un entier comme 36 n'a pas besoin de guillemets.",
+          "en": "An integer such as 36 does not need quotes."
+        }
+      ],
+      "debrief": {
+        "fr": "Une variable associe un nom à une valeur. Ici pilot_name contient une str et pilot_age un int ; Python détermine leur type à partir des valeurs assignées.",
+        "en": "A variable binds a name to a value. Here pilot_name holds a str and pilot_age an int; Python determines their types from the assigned values."
+      },
+      "bonus": {
+        "fr": "Ajoute une variable pilot_active = True puis affiche-la sur une seconde ligne.",
+        "en": "Add pilot_active = True and print it on a second line."
+      },
+      "concepts": [
+        {
+          "fr": "variable",
+          "en": "variable"
+        },
+        {
+          "fr": "str",
+          "en": "str"
+        },
+        {
+          "fr": "int",
+          "en": "int"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Variables et types",
+          "en": "Gius sheet — Variables and types"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/02-variables-et-types/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "PILOT Ada AGE 36"
+      }
+    },
+    {
+      "id": "python-02-types",
+      "order": 2,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Réparer les capteurs",
+        "en": "Repair the sensors"
+      },
+      "scenario": {
+        "fr": "Deux capteurs envoient des valeurs lisibles, mais dans le mauvais type. Le programme de contrôle refuse les chaînes de caractères à leur place.",
+        "en": "Two sensors send readable values, but with the wrong types. The control program refuses strings in their place."
+      },
+      "objective": {
+        "fr": "Corrige uniquement les valeurs pour que le programme affiche float puis bool.",
+        "en": "Fix only the values so the program prints float and then bool."
+      },
+      "starter": "# Mission 2\ntemperature = \"21.5\"\ndoors_locked = \"True\"\n\nprint(type(temperature).__name__)\nprint(type(doors_locked).__name__)\n",
+      "hints": [
+        {
+          "fr": "Les guillemets transforment 21.5 en chaîne. Un nombre décimal Python s'écrit directement : 21.5.",
+          "en": "Quotes turn 21.5 into a string. A Python decimal number is written directly: 21.5."
+        },
+        {
+          "fr": "Le booléen vrai s'écrit True, avec une majuscule et sans guillemets.",
+          "en": "The true boolean is written True, capitalised and without quotes."
+        }
+      ],
+      "debrief": {
+        "fr": "La valeur assignée détermine ici le type : 21.5 est un float et True un bool. Le même texte entre guillemets aurait été une str.",
+        "en": "The assigned value determines the type here: 21.5 is a float and True a bool. The same text inside quotes would have been a str."
+      },
+      "bonus": {
+        "fr": "Ajoute crew_count = 3 et affiche le nom de son type avec la même technique.",
+        "en": "Add crew_count = 3 and print its type name using the same technique."
+      },
+      "concepts": [
+        {
+          "fr": "float",
+          "en": "float"
+        },
+        {
+          "fr": "bool",
+          "en": "bool"
+        },
+        {
+          "fr": "type()",
+          "en": "type()"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Variables et types",
+          "en": "Gius sheet — Variables and types"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/02-variables-et-types/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "float\nbool"
+      }
     }
   ]
 }

@@ -181,3 +181,96 @@
     border: 1px solid #67c587;
     border-radius: 0.75rem;
 }
+
+
+.mod-lgcplayground-missions {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.mod-lgcplayground-missions-summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mod-lgcplayground-missions-summary span {
+    font-size: 0.82rem;
+    opacity: 0.7;
+}
+
+.mod-lgcplayground-mission-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.6rem;
+}
+
+.mod-lgcplayground-mission-tab {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+        "number title"
+        "number status";
+    column-gap: 0.65rem;
+    align-items: center;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 0.85rem;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.mod-lgcplayground-mission-tab > span {
+    grid-area: number;
+    font: 700 0.78rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: 0.55;
+}
+
+.mod-lgcplayground-mission-tab > strong {
+    grid-area: title;
+    font-size: 0.9rem;
+}
+
+.mod-lgcplayground-mission-tab > small {
+    grid-area: status;
+    opacity: 0.62;
+}
+
+.mod-lgcplayground-mission-tab:hover:not(:disabled),
+.mod-lgcplayground-mission-tab.is-active {
+    border-color: #49cbe8;
+    background: color-mix(in srgb, #49cbe8 8%, transparent);
+}
+
+.mod-lgcplayground-mission-tab.is-passed > small {
+    color: #3f9d62;
+    opacity: 1;
+}
+
+.mod-lgcplayground-track-success {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid #67c587;
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, #67c587 8%, transparent);
+}
+
+.mod-lgcplayground-track-success span {
+    font-size: 0.86rem;
+    opacity: 0.76;
+}
+
+@media (max-width: 700px) {
+    .mod-lgcplayground-missions-summary,
+    .mod-lgcplayground-track-success {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

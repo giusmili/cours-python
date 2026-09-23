@@ -36,6 +36,8 @@ type Progress = {
     timepassed: number;
 };
 
+type ProgressByMission = Record<string, Progress>;
+
 type ProgressResponse = Progress & {
     activitypassed: boolean;
 };
@@ -46,8 +48,8 @@ type PlaygroundViewProps = {
     missionPack: string;
     courseModuleId: number;
     locale: Locale;
-    mission: Mission;
-    progress: Progress;
+    missions: Mission[];
+    progressByMission: ProgressByMission;
     canPersist: boolean;
     ajaxUrl: string;
     sesskey: string;
@@ -61,7 +63,22 @@ type AjaxEnvelope = {
     };
 };
 
+const EMPTY_PROGRESS: Progress = {
+    attempts: 0,
+    passed: false,
+    timepassed: 0,
+};
+
 const text = (value: Localized, locale: Locale) => value[locale] ?? value.en;
+
+const firstIncompleteMission = (missions: Mission[], progress: ProgressByMission) => {
+    const index = missions.findIndex((mission) => !progress[mission.id]?.passed);
+    return index >= 0 ? index : 0;
+};
+
+const allMissionsPassed = (missions: Mission[], progress: ProgressByMission) => (
+    missions.length > 0 && missions.every((mission) => progress[mission.id]?.passed)
+);
 
 export default function PlaygroundView({
     activityName,
@@ -69,24 +86,62 @@ export default function PlaygroundView({
     missionPack,
     courseModuleId,
     locale,
-    mission,
-    progress,
+    missions,
+    progressByMission: initialProgress,
     canPersist,
     ajaxUrl,
     sesskey,
 }: PlaygroundViewProps) {
+    const [progressByMission, setProgressByMission] = useState<ProgressByMission>(initialProgress);
+    const [missionIndex, setMissionIndex] = useState(() => firstIncompleteMission(missions, initialProgress));
+    const mission = missions[missionIndex];
+    const missionProgress = progressByMission[mission.id] ?? EMPTY_PROGRESS;
+
     const [code, setCode] = useState(mission.starter);
     const [hintCount, setHintCount] = useState(0);
     const [output, setOutput] = useState('');
     const [running, setRunning] = useState(false);
     const [lastRunCode, setLastRunCode] = useState<string | null>(null);
-    const [passed, setPassed] = useState(progress.passed);
-    const [attempts, setAttempts] = useState(progress.attempts);
+    const [passed, setPassed] = useState(missionProgress.passed);
+    const [attempts, setAttempts] = useState(missionProgress.attempts);
+    const [activityPassed, setActivityPassed] = useState(
+        () => allMissionsPassed(missions, initialProgress),
+    );
     const [syncing, setSyncing] = useState(false);
     const [syncError, setSyncError] = useState('');
     const [runtimeError, setRuntimeError] = useState('');
 
     useEffect(() => () => resetPythonRuntime(), []);
+
+    const selectMission = (nextIndex: number) => {
+        if (nextIndex === missionIndex || running || syncing) {
+            return;
+        }
+
+        const nextMission = missions[nextIndex];
+        const nextProgress = progressByMission[nextMission.id] ?? EMPTY_PROGRESS;
+
+        setMissionIndex(nextIndex);
+        setCode(nextMission.starter);
+        setHintCount(0);
+        setOutput('');
+        setLastRunCode(null);
+        setPassed(nextProgress.passed);
+        setAttempts(nextProgress.attempts);
+        setRuntimeError('');
+        setSyncError('');
+    };
+
+    const resetMission = () => {
+        setCode(mission.starter);
+        setHintCount(0);
+        setOutput('');
+        setLastRunCode(null);
+        setRuntimeError('');
+        setSyncError('');
+        setPassed(missionProgress.passed);
+        setAttempts(missionProgress.attempts);
+    };
 
     const showHint = () => {
         setHintCount((current) => Math.min(current + 1, mission.hints.length));
@@ -106,18 +161,38 @@ export default function PlaygroundView({
         }
     };
 
+    const updateLocalProgress = (next: Progress) => {
+        setProgressByMission((current) => {
+            const updated = {
+                ...current,
+                [mission.id]: next,
+            };
+            setActivityPassed(allMissionsPassed(missions, updated));
+            return updated;
+        });
+        setAttempts(next.attempts);
+        setPassed(next.passed);
+    };
+
     const validate = async() => {
         const ok = lastRunCode === code && output.trim() === mission.validation.expectedOutput.trim();
-        setPassed((current) => current || ok);
 
         if (!ok && lastRunCode === code && !runtimeError) {
-            setRuntimeError(locale === 'fr' ? 'La sortie ne correspond pas encore à l’objectif.' : 'The output does not match the objective yet.');
+            setRuntimeError(locale === 'fr'
+                ? 'La sortie ne correspond pas encore à l’objectif.'
+                : 'The output does not match the objective yet.');
         }
 
         if (!canPersist) {
+            updateLocalProgress({
+                attempts: attempts + 1,
+                passed: passed || ok,
+                timepassed: (passed || ok) ? (missionProgress.timepassed || Date.now()) : 0,
+            });
             return;
         }
 
+        setPassed((current) => current || ok);
         setSyncing(true);
         setSyncError('');
         try {
@@ -145,8 +220,18 @@ export default function PlaygroundView({
                 throw new Error(envelope?.exception?.message || 'Moodle progress request failed.');
             }
 
-            setAttempts(envelope.data.attempts);
-            setPassed(envelope.data.passed);
+            const nextProgress = {
+                attempts: envelope.data.attempts,
+                passed: envelope.data.passed,
+                timepassed: envelope.data.timepassed,
+            };
+            setProgressByMission((current) => ({
+                ...current,
+                [mission.id]: nextProgress,
+            }));
+            setAttempts(nextProgress.attempts);
+            setPassed(nextProgress.passed);
+            setActivityPassed(envelope.data.activitypassed);
         } catch (error) {
             setSyncError(
                 locale === 'fr'
@@ -158,10 +243,65 @@ export default function PlaygroundView({
         }
     };
 
+    const completedCount = missions.filter((item) => progressByMission[item.id]?.passed).length;
+
     return (
         <main className="mod-lgcplayground-app" data-cmid={courseModuleId}>
+            <nav
+                className="mod-lgcplayground-missions"
+                aria-label={locale === 'fr' ? 'Missions du parcours' : 'Track missions'}
+            >
+                <div className="mod-lgcplayground-missions-summary">
+                    <strong>{activityName}</strong>
+                    <span>
+                        {completedCount}/{missions.length} {locale === 'fr' ? 'missions réussies' : 'missions complete'}
+                    </span>
+                </div>
+                <div className="mod-lgcplayground-mission-list">
+                    {missions.map((item, index) => {
+                        const itemPassed = progressByMission[item.id]?.passed ?? false;
+                        const active = index === missionIndex;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={[
+                                    'mod-lgcplayground-mission-tab',
+                                    active ? 'is-active' : '',
+                                    itemPassed ? 'is-passed' : '',
+                                ].filter(Boolean).join(' ')}
+                                aria-current={active ? 'step' : undefined}
+                                onClick={() => selectMission(index)}
+                                disabled={running || syncing}
+                            >
+                                <span>{String(item.order).padStart(2, '0')}</span>
+                                <strong>{text(item.title, locale)}</strong>
+                                <small>
+                                    {itemPassed
+                                        ? (locale === 'fr' ? 'Réussie' : 'Complete')
+                                        : (locale === 'fr' ? 'À faire' : 'To do')}
+                                </small>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
+
+            {activityPassed && (
+                <div className="mod-lgcplayground-track-success" role="status">
+                    <strong>{locale === 'fr' ? 'Parcours validé' : 'Track complete'}</strong>
+                    <span>
+                        {locale === 'fr'
+                            ? 'Toutes les missions requises sont réussies dans Moodle.'
+                            : 'All required missions are complete in Moodle.'}
+                    </span>
+                </div>
+            )}
+
             <header className="mod-lgcplayground-hero">
-                <span className="mod-lgcplayground-kicker">LGC Playground · {track}</span>
+                <span className="mod-lgcplayground-kicker">
+                    LGC Playground · {track} · {missionIndex + 1}/{missions.length}
+                </span>
                 <h2>{text(mission.title, locale)}</h2>
                 <p>{text(mission.scenario, locale)}</p>
             </header>
@@ -197,7 +337,7 @@ export default function PlaygroundView({
                         <button
                             type="button"
                             className="btn btn-outline-secondary"
-                            onClick={() => setCode(mission.starter)}
+                            onClick={resetMission}
                         >
                             {locale === 'fr' ? 'Réinitialiser' : 'Reset'}
                         </button>
@@ -210,7 +350,9 @@ export default function PlaygroundView({
                             {locale === 'fr' ? 'Indice' : 'Hint'}
                         </button>
                         <button type="button" className="btn btn-primary" onClick={runCode} disabled={running}>
-                            {running ? (locale === 'fr' ? 'Exécution…' : 'Running…') : (locale === 'fr' ? 'Exécuter' : 'Run')}
+                            {running
+                                ? (locale === 'fr' ? 'Exécution…' : 'Running…')
+                                : (locale === 'fr' ? 'Exécuter' : 'Run')}
                         </button>
                         <button
                             type="button"
@@ -227,7 +369,11 @@ export default function PlaygroundView({
 
                 <aside className="mod-lgcplayground-side">
                     <strong>{activityName}</strong>
-                    <p>{locale === 'fr' ? 'Python s’exécute dans un Web Worker isolé du navigateur.' : 'Python runs in an isolated browser Web Worker.'}</p>
+                    <p>
+                        {locale === 'fr'
+                            ? 'Python s’exécute dans un Web Worker isolé du navigateur.'
+                            : 'Python runs in an isolated browser Web Worker.'}
+                    </p>
 
                     <div className="mod-lgcplayground-output">
                         <span>{locale === 'fr' ? 'Sortie' : 'Output'}</span>
@@ -240,8 +386,8 @@ export default function PlaygroundView({
                                 ? `Progression Moodle · ${attempts} validation(s)`
                                 : `Moodle progress · ${attempts} validation attempt(s)`)
                             : (locale === 'fr'
-                                ? 'Mode invité · progression non enregistrée'
-                                : 'Guest mode · progress is not saved')}
+                                ? 'Mode invité · progression conservée pour cette page seulement'
+                                : 'Guest mode · progress is kept for this page only')}
                     </p>
 
                     {runtimeError && <p className="mod-lgcplayground-error">{runtimeError}</p>}
@@ -252,6 +398,16 @@ export default function PlaygroundView({
                             <strong>{locale === 'fr' ? 'Mission validée' : 'Mission complete'}</strong>
                             <p>{text(mission.debrief, locale)}</p>
                             <p><strong>{locale === 'fr' ? 'Bonus' : 'Bonus'}:</strong> {text(mission.bonus, locale)}</p>
+                            {missionIndex < missions.length - 1 && (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-success btn-sm"
+                                    onClick={() => selectMission(missionIndex + 1)}
+                                    disabled={running || syncing}
+                                >
+                                    {locale === 'fr' ? 'Mission suivante' : 'Next mission'}
+                                </button>
+                            )}
                         </div>
                     )}
 

@@ -40,7 +40,22 @@ final class custom_completion_test extends advanced_testcase {
             'python-00-terminal',
             true,
         );
+        $this->assertSame(COMPLETION_INCOMPLETE, $completion->get_state('completionpass'));
 
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'python-01-variables',
+            true,
+        );
+        $this->assertSame(COMPLETION_INCOMPLETE, $completion->get_state('completionpass'));
+
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'python-02-types',
+            true,
+        );
         $this->assertSame(COMPLETION_COMPLETE, $completion->get_state('completionpass'));
     }
 

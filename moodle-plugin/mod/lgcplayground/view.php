@@ -20,14 +20,21 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
 $pack = mission_repository::load((string)$activity->missionpack);
-$mission = mission_repository::first_for_track($pack, (string)$activity->track);
+$missions = mission_repository::for_track($pack, (string)$activity->track);
 $currentlanguage = current_language();
 $locale = str_starts_with($currentlanguage, 'fr') ? 'fr' : 'en';
 
 $canpersist = !isguestuser($USER);
-$progress = $canpersist
-    ? progress_repository::export_mission((int)$activity->id, (int)$USER->id, (string)$mission['id'])
-    : ['attempts' => 0, 'passed' => false, 'timepassed' => 0];
+$progressbymission = [];
+foreach ($missions as $mission) {
+    $progressbymission[$mission['id']] = $canpersist
+        ? progress_repository::export_mission(
+            (int)$activity->id,
+            (int)$USER->id,
+            (string)$mission['id'],
+        )
+        : ['attempts' => 0, 'passed' => false, 'timepassed' => 0];
+}
 
 $props = [
     'activityName' => format_string($activity->name),
@@ -35,8 +42,8 @@ $props = [
     'missionPack' => (string)$activity->missionpack,
     'courseModuleId' => (int)$cm->id,
     'locale' => $locale,
-    'mission' => $mission,
-    'progress' => $progress,
+    'missions' => $missions,
+    'progressByMission' => $progressbymission,
     'canPersist' => $canpersist,
     'ajaxUrl' => (new moodle_url('/lib/ajax/service.php'))->out(false),
     'sesskey' => sesskey(),
