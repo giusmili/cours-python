@@ -185,6 +185,128 @@
         "kind": "python",
         "expectedOutput": "float\nbool"
       }
+    },
+    {
+      "id": "python-03-conditions",
+      "order": 3,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Déclencher le refroidissement",
+        "en": "Trigger the cooling system"
+      },
+      "scenario": {
+        "fr": "La température du module grimpe. Le contrôleur connaît la valeur du capteur, mais sa décision automatique n’est pas encore câblée.",
+        "en": "The module temperature is rising. The controller knows the sensor value, but its automatic decision is not wired yet."
+      },
+      "objective": {
+        "fr": "Remplace la condition provisoire pour que le programme affiche exactement COOLING ON.",
+        "en": "Replace the temporary condition so the program prints exactly COOLING ON."
+      },
+      "starter": "# Mission 3\ntemperature = 32\n\nif False:\n    print(\"COOLING ON\")\nelse:\n    print(\"TEMP OK\")\n",
+      "hints": [
+        {
+          "fr": "La branche if doit être vraie lorsque temperature dépasse 30.",
+          "en": "The if branch must be true when temperature is above 30."
+        },
+        {
+          "fr": "Une comparaison peut s’écrire temperature > 30.",
+          "en": "A comparison can be written temperature > 30."
+        }
+      ],
+      "debrief": {
+        "fr": "if exécute son bloc lorsque la condition est vraie ; sinon else prend le relais. Ici, la comparaison temperature > 30 produit un booléen.",
+        "en": "if runs its block when the condition is true; otherwise else takes over. Here, temperature > 30 produces a boolean."
+      },
+      "bonus": {
+        "fr": "Ajoute un elif pour afficher WARNING entre 25 et 30 degrés.",
+        "en": "Add an elif branch that prints WARNING between 25 and 30 degrees."
+      },
+      "concepts": [
+        {
+          "fr": "if / else",
+          "en": "if / else"
+        },
+        {
+          "fr": "comparaison",
+          "en": "comparison"
+        },
+        {
+          "fr": "booléen",
+          "en": "boolean"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Conditions",
+          "en": "Gius sheet — Conditions"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/03-conditions/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "COOLING ON"
+      }
+    },
+    {
+      "id": "python-04-for-loop",
+      "order": 4,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Scanner les secteurs",
+        "en": "Scan the sectors"
+      },
+      "scenario": {
+        "fr": "Le diagnostic doit répéter la même vérification sur trois secteurs. Copier trois fois la même instruction fonctionnerait, mais le programme doit apprendre à répéter.",
+        "en": "The diagnostic must repeat the same check across three sectors. Copying the same instruction three times would work, but the program should learn to repeat."
+      },
+      "objective": {
+        "fr": "Corrige la boucle pour afficher SCAN 0, SCAN 1 puis SCAN 2, une ligne par secteur.",
+        "en": "Fix the loop so it prints SCAN 0, SCAN 1, then SCAN 2, one sector per line."
+      },
+      "starter": "# Mission 4\nfor sector in range(0):\n    print(\"SCAN\", sector)\n",
+      "hints": [
+        {
+          "fr": "range(n) fournit les entiers de 0 jusqu’à n - 1.",
+          "en": "range(n) provides the integers from 0 up to n - 1."
+        },
+        {
+          "fr": "Pour obtenir 0, 1 et 2, utilise range(3).",
+          "en": "To get 0, 1 and 2, use range(3)."
+        }
+      ],
+      "debrief": {
+        "fr": "for répète un bloc pour chaque élément d’une séquence. range(3) produit 0, 1, 2 : la même instruction est donc exécutée trois fois avec une valeur différente.",
+        "en": "for repeats a block for each item in a sequence. range(3) produces 0, 1, 2, so the same instruction runs three times with a different value."
+      },
+      "bonus": {
+        "fr": "Refais le même résultat avec un compteur et une boucle while.",
+        "en": "Produce the same output again using a counter and a while loop."
+      },
+      "concepts": [
+        {
+          "fr": "for",
+          "en": "for"
+        },
+        {
+          "fr": "range()",
+          "en": "range()"
+        },
+        {
+          "fr": "répétition",
+          "en": "repetition"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Boucles",
+          "en": "Gius sheet — Loops"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/04-boucles/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "SCAN 0\nSCAN 1\nSCAN 2"
+      }
     }
   ]
 }
