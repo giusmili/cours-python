@@ -27,10 +27,15 @@ Implemented:
 - Run, output, validation, hints, debrief and bonus for P0;
 - 5 s runaway-code timeout and blocked browser network capability in the Python worker.
 
+Implemented in the current progress slice:
+- Moodle-owned per-user validation attempts;
+- monotonic mission pass state (a later failure never erases a pass);
+- authenticated AJAX persistence;
+- cross-device restoration of attempts/pass state;
+- explicit Moodle automatic completion when all required missions are passed;
+- privacy metadata/export/deletion support for stored progress.
+
 Not implemented yet:
-- learner attempts/progress persistence;
-- custom Moodle completion rule;
-- AJAX/external service endpoints;
 - migration of the remaining mission catalogue;
 - backup/restore;
 - grading;
@@ -53,6 +58,13 @@ Validated on the Linux LOCAL recipe against Moodle **5.2.3+ (Build: 20260916)**:
 - `js.fetch()` from student Python is blocked by the worker sandbox;
 - `while True: pass` is interrupted after about 5 seconds without freezing the Moodle page.
 
-The browser E2E used LOCAL guest course access so it could remain credential-free in automation. A named enrolled-student pass is still worth doing before persistence/completion becomes the source of truth.
+The persistence slice was validated with a named enrolled LOCAL student:
+- first failed validation persisted as attempt 1 without passing;
+- second successful validation persisted as attempt 2 and marked the mission passed;
+- a fresh browser context restored attempts=2 and the success state from Moodle;
+- Moodle recorded activity completion state `COMPLETION_COMPLETE`;
+- no learner source code or stdout is stored server-side.
 
-Next slice: Moodle-owned learner progress/tentative persistence and explicit completion semantics. Do not add more mission volume until that contract is clean.
+The current pass is deliberately low-stakes: "passed" means the browser mission engine validated the exercise. It is a stable Moodle fact, but Roads must still decide whether that fact is sufficient achievement evidence for a curriculum milestone.
+
+Next slice: harden the proof contract and tests, then migrate further missions only when the Moodle-owned state semantics remain clean.
