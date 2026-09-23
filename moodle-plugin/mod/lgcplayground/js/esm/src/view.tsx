@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from 'react';
-import {call} from 'core/ajax';
 import {resetPythonRuntime, runPythonInSandbox} from './pythonRuntime';
 
 type Locale = 'fr' | 'en';
@@ -50,6 +49,16 @@ type PlaygroundViewProps = {
     mission: Mission;
     progress: Progress;
     canPersist: boolean;
+    ajaxUrl: string;
+    sesskey: string;
+};
+
+type AjaxEnvelope = {
+    error: boolean;
+    data?: ProgressResponse;
+    exception?: {
+        message?: string;
+    };
 };
 
 const text = (value: Localized, locale: Locale) => value[locale] ?? value.en;
@@ -63,6 +72,8 @@ export default function PlaygroundView({
     mission,
     progress,
     canPersist,
+    ajaxUrl,
+    sesskey,
 }: PlaygroundViewProps) {
     const [code, setCode] = useState(mission.starter);
     const [hintCount, setHintCount] = useState(0);
@@ -110,17 +121,32 @@ export default function PlaygroundView({
         setSyncing(true);
         setSyncError('');
         try {
-            const response = await call([{
-                methodname: 'mod_lgcplayground_record_attempt',
-                args: {
-                    cmid: courseModuleId,
-                    missionid: mission.id,
-                    passed: ok,
-                },
-            }])[0] as ProgressResponse;
+            const endpoint = new URL(ajaxUrl, window.location.href);
+            endpoint.searchParams.set('sesskey', sesskey);
+            endpoint.searchParams.set('info', 'mod_lgcplayground_record_attempt');
 
-            setAttempts(response.attempts);
-            setPassed(response.passed);
+            const httpResponse = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify([{
+                    index: 0,
+                    methodname: 'mod_lgcplayground_record_attempt',
+                    args: {
+                        cmid: courseModuleId,
+                        missionid: mission.id,
+                        passed: ok,
+                    },
+                }]),
+            });
+            const envelopes = await httpResponse.json() as AjaxEnvelope[];
+            const envelope = envelopes[0];
+            if (!httpResponse.ok || !envelope || envelope.error || !envelope.data) {
+                throw new Error(envelope?.exception?.message || 'Moodle progress request failed.');
+            }
+
+            setAttempts(envelope.data.attempts);
+            setPassed(envelope.data.passed);
         } catch (error) {
             setSyncError(
                 locale === 'fr'
