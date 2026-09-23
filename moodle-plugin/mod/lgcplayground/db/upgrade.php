@@ -44,7 +44,6 @@ function xmldb_lgcplayground_upgrade(int $oldversion): bool {
         $progress->add_key('playgroundid', XMLDB_KEY_FOREIGN, ['playgroundid'], 'lgcplayground', ['id']);
         $progress->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
         $progress->add_index('playground-user-mission', XMLDB_INDEX_UNIQUE, ['playgroundid', 'userid', 'missionid']);
-        $progress->add_index('user', XMLDB_INDEX_NOTUNIQUE, ['userid']);
 
         if (!$dbman->table_exists($progress)) {
             $dbman->create_table($progress);
