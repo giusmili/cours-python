@@ -207,3 +207,26 @@ Le prochain ajout de contenu doit rester progressif. Avant d'ajouter des dizaine
 - conserver les ids stables ;
 - ajouter ensuite conditions puis boucles avec la même boucle exécuter → feedback → validation → débrief ;
 - garder séparée la notion de progression Moodle et celle de preuve forte éventuellement consommée par Roads.
+
+## Checkpoint interrompu proprement — P3/P4
+
+Branche de travail : `dev/python-conditions-loops`.
+
+État au moment de la pause :
+- P3 `python-03-conditions` ajoutée au pack ;
+- P4 `python-04-for-loop` ajoutée au pack ;
+- références alignées sur les chapitres `03-conditions` et `04-boucles` du `master` de Gius ;
+- tests completion/endpoint adaptés au nombre dynamique de missions ;
+- suite Moodle LOCAL verte : **10 tests / 54 assertions**.
+
+La branche **n'est pas intégrée** à `kevin/missions`.
+
+Le dernier E2E Chromium a expiré en attendant le passage visuel de P2 vers P3. Aucun process de test ne tourne encore. Avant intégration :
+1. reprendre l'E2E P0 → P1 → P2 → P3 → P4 ;
+2. déterminer si le timeout vient uniquement de l'assertion de navigation/titre ou d'une vraie régression frontend ;
+3. vérifier le nouveau contexte navigateur avec 5/5 missions restaurées ;
+4. vérifier `completionstate=1` ;
+5. seulement ensuite fast-forward vers `kevin/missions` et supprimer la branche.
+
+Aucun travail VPS n'est requis pour cette reprise : GitHub + Linux/Moodle LOCAL suffisent.
+
