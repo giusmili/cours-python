@@ -7,6 +7,7 @@ defined('MOODLE_INTERNAL') || die();
 
 use advanced_testcase;
 use mod_lgcplayground\completion\custom_completion;
+use mod_lgcplayground\local\mission_repository;
 use mod_lgcplayground\local\progress_repository;
 
 /**
@@ -34,29 +35,24 @@ final class custom_completion_test extends advanced_testcase {
 
         $this->assertSame(COMPLETION_INCOMPLETE, $completion->get_state('completionpass'));
 
-        progress_repository::record_attempt(
-            (int)$activity->id,
-            (int)$student->id,
-            'python-00-terminal',
-            true,
+        $missionids = mission_repository::ids_for_track(
+            mission_repository::load('python-basics-v1'),
+            'python',
         );
-        $this->assertSame(COMPLETION_INCOMPLETE, $completion->get_state('completionpass'));
 
-        progress_repository::record_attempt(
-            (int)$activity->id,
-            (int)$student->id,
-            'python-01-variables',
-            true,
-        );
-        $this->assertSame(COMPLETION_INCOMPLETE, $completion->get_state('completionpass'));
+        foreach ($missionids as $index => $missionid) {
+            progress_repository::record_attempt(
+                (int)$activity->id,
+                (int)$student->id,
+                $missionid,
+                true,
+            );
 
-        progress_repository::record_attempt(
-            (int)$activity->id,
-            (int)$student->id,
-            'python-02-types',
-            true,
-        );
-        $this->assertSame(COMPLETION_COMPLETE, $completion->get_state('completionpass'));
+            $expected = $index === array_key_last($missionids)
+                ? COMPLETION_COMPLETE
+                : COMPLETION_INCOMPLETE;
+            $this->assertSame($expected, $completion->get_state('completionpass'));
+        }
     }
 
     public function test_rule_metadata_is_consistent(): void {
