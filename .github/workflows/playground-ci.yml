@@ -43,5 +43,8 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
 
+      - name: Shellcheck deploy helpers
+        run: shellcheck ops/playground-dev-deploy ops/playground-dev-dispatch ops/playground-dev-request ops/install-playground-dev-broker scripts/deploy-preview.sh
+
       - name: Build preview image
-        run: docker build -t playground-dev:ci .
+        run: docker build -f ops/Dockerfile.preview -t playground-dev:ci .
