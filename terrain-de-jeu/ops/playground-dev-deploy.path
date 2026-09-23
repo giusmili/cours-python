@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for bounded playground-dev deployment requests
+
+[Path]
+PathExists=/run/playground-dev/deploy.request
+Unit=playground-dev-deploy.service
+
+[Install]
+WantedBy=multi-user.target
