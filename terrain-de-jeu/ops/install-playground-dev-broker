@@ -33,6 +33,7 @@ install -d -o root -g root -m 0755 /usr/local/sbin
 install -d -o root -g root -m 0755 /usr/local/bin
 install -d -o root -g root -m 0700 /etc/playground-dev
 install -d -o root -g root -m 0755 /var/lib/playground-dev
+install -d -o root -g root -m 0755 /opt/playground-dev-source
 install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 0700 "$PREVIEW_CONFIG_DIR"
 
 install -o root -g root -m 0755 "$USER_WORKER" /usr/local/libexec/playground-agentctl-worker
