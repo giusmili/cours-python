@@ -94,6 +94,7 @@ Avant intégration :
 - validation XML de `db/install.xml` ;
 - build Moodle ESM/React dans Moodle LOCAL 5.2 ;
 - installation/upgrade LOCAL avant STAGING ;
+- exécuter la suite ciblée Moodle LOCAL : `vendor/bin/phpunit --testsuite mod_lgcplayground_testsuite` (depuis le conteneur / dirroot Moodle) ;
 - pour toute modification de progression/completion : test avec un utilisateur élève nommé, persistance après nouveau contexte navigateur et vérification de `course_modules_completion` ;
 - ne jamais considérer automatiquement un pass validé côté navigateur comme preuve forte Roads : documenter le niveau de preuve.
 
