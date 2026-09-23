@@ -27,6 +27,11 @@ export type WebRule =
       kind: "cssPattern";
       pattern: string;
       message: Localized;
+    }
+  | {
+      kind: "codePattern";
+      pattern: string;
+      message: Localized;
     };
 
 export type MissionValidation =
@@ -255,6 +260,79 @@ badge = "visitor"
           message: {
             fr: "Prévois aussi le cas refusé avec else.",
             en: "Handle the denied case with else as well.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "python-03-loop",
+    track: "python",
+    order: 3,
+    fileName: "scanner.py",
+    title: { fr: "Scanner les événements", en: "Scan the events" },
+    scenario: {
+      fr: "Le journal du poste de contrôle contient quatre états. Deux services sont tombés, mais personne ne veut les compter à la main.",
+      en: "The control log contains four states. Two services went down, and nobody wants to count them by hand.",
+    },
+    objective: {
+      fr: "Parcours states avec une boucle for, compte les valeurs \"offline\" et affiche exactement OFFLINE: 2.",
+      en: "Loop through states with for, count the \"offline\" values and print exactly OFFLINE: 2.",
+    },
+    starter: `# Mission 3
+states = ["online", "offline", "online", "offline"]
+offline_count = 0
+
+# Parcours les états ici.
+
+print(f"OFFLINE: {offline_count}")
+`,
+    hints: [
+      {
+        fr: "Une boucle for peut parcourir directement une liste : for state in states:",
+        en: "A for loop can iterate directly over a list: for state in states:",
+      },
+      {
+        fr: "Quand state vaut \"offline\", augmente offline_count de 1.",
+        en: "When state equals \"offline\", increase offline_count by 1.",
+      },
+    ],
+    debrief: {
+      fr: "Une boucle évite de répéter la même instruction. Ici, tu as parcouru une collection et maintenu un compteur.",
+      en: "A loop avoids repeating the same instruction. Here you iterated over a collection and maintained a counter.",
+    },
+    bonus: {
+      fr: "Affiche aussi ONLINE: 2 sans écrire une deuxième boucle.",
+      en: "Also print ONLINE: 2 without writing a second loop.",
+    },
+    concepts: [
+      { fr: "for", en: "for" },
+      { fr: "liste", en: "list" },
+      { fr: "compteur", en: "counter" },
+    ],
+    reference: {
+      label: { fr: "Fiche Gius — Boucles", en: "Gius sheet — Loops" },
+      href: {
+        fr: githubReference("04-boucles/notes.md"),
+        en: githubReference("04-boucles/notes.md"),
+      },
+    },
+    validation: {
+      kind: "python",
+      expectedOutput: "OFFLINE: 2",
+      codeRules: [
+        {
+          pattern: "^\\s*for\\s+.+\\s+in\\s+.+:",
+          message: {
+            fr: "Utilise une vraie boucle for pour parcourir les états.",
+            en: "Use an actual for loop to iterate over the states.",
+          },
+        },
+        {
+          pattern: "offline_count\\s*\\+=\\s*1|offline_count\\s*=\\s*offline_count\\s*\\+\\s*1",
+          message: {
+            fr: "Fais évoluer offline_count dans la boucle.",
+            en: "Update offline_count inside the loop.",
           },
         },
       ],
@@ -515,6 +593,111 @@ badge = "visitor"
           message: {
             fr: "Ajoute un gap à .panel-grid.",
             en: "Add a gap to .panel-grid.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "web-03-interaction",
+    track: "web",
+    order: 3,
+    fileName: "index.html",
+    title: { fr: "Le bouton doit agir", en: "Make the button react" },
+    scenario: {
+      fr: "L'interface affiche OFFLINE même après le retour du service. Le bouton ACTIVATE doit maintenant modifier réellement l'état de la page.",
+      en: "The interface still shows OFFLINE after the service recovers. The ACTIVATE button must now change the page state for real.",
+    },
+    objective: {
+      fr: "Au clic sur #activate, change le texte de #status en ONLINE avec JavaScript.",
+      en: "When #activate is clicked, change #status text to ONLINE with JavaScript.",
+    },
+    starter: `<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0b1020;
+    color: white;
+  }
+
+  button {
+    padding: 12px 18px;
+  }
+</style>
+
+<main>
+  <p id="status">OFFLINE</p>
+  <button id="activate">ACTIVATE</button>
+</main>
+
+<script>
+  const button = document.getElementById("activate");
+  const status = document.getElementById("status");
+
+  // Fais réagir le bouton ici.
+</script>`,
+    hints: [
+      {
+        fr: 'Écoute le clic avec button.addEventListener("click", () => { ... }).',
+        en: 'Listen for the click with button.addEventListener("click", () => { ... }).',
+      },
+      {
+        fr: 'Dans la fonction, change status.textContent en "ONLINE".',
+        en: 'Inside the function, change status.textContent to "ONLINE".',
+      },
+    ],
+    debrief: {
+      fr: "JavaScript ajoute le comportement. Tu as relié un événement utilisateur à une modification du DOM sans changer la structure HTML initiale.",
+      en: "JavaScript adds behavior. You connected a user event to a DOM update without changing the original HTML structure.",
+    },
+    bonus: {
+      fr: "Fais ensuite alterner le bouton entre ONLINE et OFFLINE à chaque clic.",
+      en: "Then make the button toggle between ONLINE and OFFLINE on every click.",
+    },
+    concepts: [
+      { fr: "événement", en: "event" },
+      { fr: "DOM", en: "DOM" },
+      { fr: "textContent", en: "textContent" },
+    ],
+    reference: {
+      label: { fr: "MDN — Événements", en: "MDN — Events" },
+      href: {
+        fr: "https://developer.mozilla.org/fr/docs/Learn_web_development/Core/Scripting/Events",
+        en: "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Events",
+      },
+    },
+    validation: {
+      kind: "web",
+      rules: [
+        {
+          kind: "selectorExists",
+          selector: "#activate",
+          message: {
+            fr: "Le bouton #activate doit rester présent.",
+            en: "The #activate button must remain present.",
+          },
+        },
+        {
+          kind: "selectorExists",
+          selector: "#status",
+          message: {
+            fr: "L'élément #status doit rester présent.",
+            en: "The #status element must remain present.",
+          },
+        },
+        {
+          kind: "codePattern",
+          pattern: "addEventListener\\s*\\(\\s*[\\\"']click[\\\"']",
+          message: {
+            fr: "Écoute réellement l'événement click avec addEventListener.",
+            en: "Listen to the click event with addEventListener.",
+          },
+        },
+        {
+          kind: "codePattern",
+          pattern: "textContent\\s*=\\s*[\\\"']ONLINE[\\\"']",
+          message: {
+            fr: "Change le texte du statut en ONLINE.",
+            en: "Change the status text to ONLINE.",
           },
         },
       ],
