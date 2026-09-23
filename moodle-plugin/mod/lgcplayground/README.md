@@ -34,14 +34,18 @@ Not implemented yet:
 - grading;
 - Roads binding automation.
 
-## First real validation
+## Validation status
 
-LOCAL Moodle 5.2 first:
+Validated on the Linux LOCAL recipe against Moodle **5.2.3+ (Build: 20260916)**:
 
-1. copy/symlink this directory to `mod/lgcplayground`;
-2. install/upgrade Moodle;
-3. build the ESM/React source with Moodle's frontend build tooling;
-4. add an LGC Playground activity to a test course;
-5. confirm that `view.php` renders the React shell.
+- plugin installation/upgrade succeeds;
+- Moodle registers the `lgcplayground` module;
+- the `lgcplayground` table is created;
+- every PHP file passes `php -l`;
+- `db/install.xml` is well-formed;
+- Moodle's own React build pipeline compiles the component successfully;
+- the compiled ESM artifact is committed under `js/esm/build`.
 
-Only after this slice works do we migrate one real mission and add per-user state/completion.
+The remaining end-to-end validation for this shell is a real browser visit to an activity instance. That is intentionally separate from the architecture/build validation.
+
+After that, the next functional slice migrates one real Python mission and only then adds per-user state/completion.
