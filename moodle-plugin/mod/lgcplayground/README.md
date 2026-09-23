@@ -25,6 +25,8 @@ Implemented:
 - bilingual Python missions P0–P4 loaded from Moodle/PHP;
 - isolated browser Python runtime (Web Worker + self-hosted Pyodide core assets);
 - multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P4;
+- sequential mission unlocking, visible track progress and a clear Code → Run → Validate workflow;
+- Ctrl/⌘+Enter shortcut for execution and a demo-friendly runtime/sync status bar;
 - 5 s runaway-code timeout and blocked browser network capability in the Python worker.
 
 Implemented in the current progress slice:
@@ -127,3 +129,18 @@ node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
 ```
 
 Then copy/sync the plugin directory **including** its generated `pyodide/` folder. Replacing the Moodle plugin with a Git archive alone will otherwise remove those ignored assets and the Python worker will fail to load.
+
+
+## Demo-ready UI checkpoint
+
+Version `0.6.0-alpha` adds presentation-focused polish without changing the Moodle/Python architecture:
+
+- compact LGC Playground header with browser-runtime and Moodle-sync status;
+- visual track progress and sequential mission unlocking;
+- explicit **Code → Run → Validate** workflow;
+- clearer console, validation feedback, debrief and bonus treatment;
+- keyboard execution shortcut (`Ctrl/⌘ + Enter`);
+- responsive layout for narrower screens;
+- less internal/dev terminology in the learner surface.
+
+The intended demo story is documented in `docs/terrain-de-jeu/10_demo_interne.md`.
