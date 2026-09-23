@@ -22,9 +22,9 @@ Implemented:
 - add/update/delete callbacks;
 - capabilities and activity creation form;
 - Moodle-native React/TypeScript mount point;
-- bilingual Python missions P0–P2 loaded from Moodle/PHP;
+- bilingual Python missions P0–P4 loaded from Moodle/PHP;
 - isolated browser Python runtime (Web Worker + self-hosted Pyodide core assets);
-- multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P2;
+- multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P4;
 - 5 s runaway-code timeout and blocked browser network capability in the Python worker.
 
 Implemented in the current progress slice:
@@ -89,17 +89,19 @@ docker exec -w /var/www/moodle moodle-coursefactory-recipe-web-1 \
   vendor/bin/phpunit --testsuite mod_lgcplayground_testsuite
 ```
 
-Current result: **10 tests, 48 assertions, green** on Moodle 5.2.3+ / PHP 8.4.
+Current result: **10 tests, 54 assertions, green** on Moodle 5.2.3+ / PHP 8.4.
 
 The LOCAL recipe has a dedicated PHPUnit prefix/dataroot and the `en_AU.UTF-8` locale required by Moodle's test bootstrap. If that disposable container is rebuilt, rerun Moodle's PHPUnit init before the suite.
 
 
 ## Multi-mission checkpoint
 
-The first Python pack now contains three small missions:
+The first Python pack now contains five small missions:
 - P0: execution workflow and `print()`;
 - P1: variables, `str` and `int`;
-- P2: `float`, `bool` and `type()`.
+- P2: `float`, `bool` and `type()`;
+- P3: conditions and comparisons;
+- P4: `for` and `range()`.
 
 The Moodle React shell:
 - renders the complete mission rail;
@@ -110,6 +112,8 @@ The Moodle React shell:
 
 Named-student Chromium E2E on LOCAL:
 `P0 -> P1 -> P2 -> fresh browser context` is green, with 3/3 progress restored and Moodle `completionstate=1`.
+
+The expanded P0–P4 UI was then validated in Chromium with LOCAL guest access: 5/5 missions execute and validate in sequence, the track-complete state appears, and the browser reports no console/page errors. The persistence/completion semantics for the expanded five-mission pack are covered by the PHPUnit suite.
 
 ### Pyodide assets in LOCAL
 
