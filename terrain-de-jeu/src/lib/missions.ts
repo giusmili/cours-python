@@ -224,7 +224,7 @@ badge = "visitor"
       en: "You just made the program decide using a boolean expression, comparisons and if / else.",
     },
     bonus: {
-      fr: 'Ajoute un cas badge == "admin" qui autorise l'accès quel que soit l'âge, en utilisant elif.',
+      fr: "Ajoute un cas badge == \"admin\" qui autorise l'accès quel que soit l'âge, en utilisant elif.",
       en: 'Add an admin badge case that grants access regardless of age, using elif.',
     },
     concepts: [
