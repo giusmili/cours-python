@@ -151,3 +151,22 @@ Avant d'augmenter fortement le catalogue :
 1. ajouter des tests automatisés PHP ciblés du repository/progress/completion ;
 2. décider quels états Playground Roads peut considérer comme simples traces de pratique versus preuves d'acquisition ;
 3. ensuite migrer P1/P2 puis le parcours Web en conservant le même contrat.
+
+
+## Checkpoint — tests automatisés du contrat
+
+Le contrat progression/completion n'est plus couvert uniquement par un E2E manuel.
+
+Suite Moodle LOCAL :
+`mod_lgcplayground_testsuite`.
+
+Résultat courant :
+- 10 tests ;
+- 42 assertions ;
+- 0 échec ;
+- Moodle 5.2.3+ ;
+- PHP 8.4.25.
+
+La suite couvre le repository de progression, la règle de completion, l'endpoint authentifié et le contrat minimal des packs de missions.
+
+Une reconstruction complète de l'environnement PHPUnit à partir de `install.xml` passe désormais sans les warnings XMLDB précédemment détectés sur les champs CHAR.
