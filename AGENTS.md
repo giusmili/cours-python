@@ -51,6 +51,7 @@ RDC n'est pas l'outil par défaut : préférer GitHub/connecteurs quand ils suff
 - `moodle-agent` n'a pas accès au démon Docker et ne doit pas être ajouté au groupe `docker`.
 - Le runtime privilégié passe par le broker documenté dans `terrain-de-jeu/DEPLOY_PREVIEW.md`.
 - Le bootstrap du broker est une opération root one-shot ; après installation, `moodle-agent` ne fait qu'écrire une requête SHA bornée via `playground-dev-request`.
+- Le déploiement root n'utilise jamais un Compose contrôlé par Git comme frontière de sécurité : Dockerfile, réseau, labels, nom de conteneur et options sensibles sont figés dans des fichiers root-owned installés par le bootstrap.
 
 ## Organisation
 - `docs/terrain-de-jeu/` : cadrage, sources, benchmark, roadmap.
@@ -76,17 +77,17 @@ Pas de second CourseSpec : Moodle Course Factory reste l'outil généraliste d'i
 - Futurs labs Linux/réseau/cyber : environnement isolé distinct de Moodle et du serveur applicatif.
 
 ## Tests
-Avant intégration dans `kevin/missions`, exécuter au minimum les tests ciblés du sous-projet puis :
+Avant intégration dans `kevin/missions`, exécuter au minimum :
 - `npm ci`
 - `npm run type-check`
 - `npm run build`
 - `npm audit --audit-level=moderate`
 
 Pour les changements de packaging/déploiement :
-- `bash -n` sur les helpers shell ;
-- valider `docker compose config` ;
-- construire l'image Docker localement ;
-- vérifier `/api/health` ;
-- vérifier HTTP 401 sans identifiants et HTTP 200 avec identifiants.
+- `bash -n` et `shellcheck` sur les helpers shell ;
+- construire `ops/Dockerfile.preview` localement ;
+- vérifier le conteneur avec `/api/health` ;
+- vérifier HTTP 401 sans identifiants et HTTP 200 avec identifiants ;
+- valider la syntaxe systemd des unités du broker.
 
 Toujours indiquer les tests réellement exécutés et les limites.
