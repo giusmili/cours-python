@@ -17,23 +17,26 @@ Projet AgentCtl : `cours-python-terrain-de-jeu`.
 Ressource :
 - `repo:giusmili/cours-python`.
 
+Le fichier `.agentctl.json` de cette branche identifie ce projet.
+
 ### Déploiement preview LGC
 Projet AgentCtl : `cours-python-playground-deploy`.
 
 Ressources :
-- `repo:giusmili/cours-python`
 - `host:vps-lgc/git`
 - `host:vps-lgc/docker`
 - `deploy:vps-lgc/playground-dev`
 - `service:playground-dev`
 
-Toute mutation partagée, y compris via GitHub connector ou RDC, doit respecter AgentCtl :
+Le broker de déploiement root-owned acquiert lui-même ce bundle via `agentctl-host-run` et maintient le heartbeat pendant le build/deploy. Déployer un SHA déjà présent dans `kevin/missions` ne mute pas GitHub et ne nécessite pas le lease repo.
+
+Pour les mutations GitHub, toute écriture partagée doit respecter AgentCtl :
 1. vérifier l'état / les sessions / leases ;
-2. démarrer une session adaptée au périmètre ;
-3. acquérir les leases exacts ;
+2. démarrer une session adaptée ;
+3. acquérir le lease exact `repo:giusmili/cours-python` ;
 4. maintenir le heartbeat pendant un travail long ;
-5. revérifier leases, branche et HEAD avant commit/push/déploiement ;
-6. terminer la session et libérer les leases en fin de passe.
+5. revérifier lease, branche et HEAD avant commit/push ;
+6. terminer la session et libérer le lease en fin de passe.
 
 Si un projet n'est pas enregistré sur une autre machine, utiliser le broker restreint documenté par AgentCtl ; ne jamais chercher, afficher ou copier le jeton admin.
 
@@ -44,8 +47,10 @@ RDC n'est pas l'outil par défaut : préférer GitHub/connecteurs quand ils suff
 - Source déployée : exclusivement `kevin/missions`.
 - Le repo est public : le VPS peut fetch en HTTPS, aucune deploy key GitHub n'est requise.
 - Aucun secret VPS ne doit être stocké dans le repo.
-- La preview est protégée par Basic Auth via `terrain-de-jeu/.env.preview` sur le VPS.
-- La session RDC LGC actuelle utilise `moodle-agent`, qui n'a pas accès au démon Docker. Ne pas l'ajouter automatiquement au groupe `docker` : ce groupe confère pratiquement des privilèges root. Utiliser un compte/broker de déploiement dédié ou obtenir un accord explicite avant tout changement de privilèges.
+- La preview est protégée par Basic Auth ; les identifiants vivent uniquement dans `/home/moodle-agent/.config/playground-dev/env` sur le VPS.
+- `moodle-agent` n'a pas accès au démon Docker et ne doit pas être ajouté au groupe `docker`.
+- Le runtime privilégié passe par le broker documenté dans `terrain-de-jeu/DEPLOY_PREVIEW.md`.
+- Le bootstrap du broker est une opération root one-shot ; après installation, `moodle-agent` ne fait qu'écrire une requête SHA bornée via `playground-dev-request`.
 
 ## Organisation
 - `docs/terrain-de-jeu/` : cadrage, sources, benchmark, roadmap.
@@ -78,6 +83,8 @@ Avant intégration dans `kevin/missions`, exécuter au minimum les tests ciblés
 - `npm audit --audit-level=moderate`
 
 Pour les changements de packaging/déploiement :
+- `bash -n` sur les helpers shell ;
+- valider `docker compose config` ;
 - construire l'image Docker localement ;
 - vérifier `/api/health` ;
 - vérifier HTTP 401 sans identifiants et HTTP 200 avec identifiants.
