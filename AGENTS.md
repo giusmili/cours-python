@@ -73,6 +73,14 @@ Le cœur institutionnel devient une activité Moodle :
 - Playground fournit l'expérience de pratique interactive ;
 - Roads se lie à des preuves Moodle stables, pas aux règles internes d'une mission.
 
+## Portabilité entre machines / source de vérité
+- **GitHub est la source de vérité du chantier.** Aucun état indispensable ne doit vivre uniquement dans un clone local.
+- Les clones Linux/VM servent de workspace, cache et environnement de test ; ils doivent pouvoir être supprimés puis recréés depuis GitHub sans perte de travail.
+- Avant de terminer une passe : pousser tout changement utile, mettre à jour la documentation/passation existante et vérifier qu'aucun fichier critique non généré n'existe uniquement localement.
+- Un changement de machine doit pouvoir se faire par `git clone` / `git fetch`, lecture d'`AGENTS.md` et reprise depuis les branches distantes.
+- Ne pas faire du clone `/home/ubuntu/projects/cours-python-playground` une dépendance conceptuelle du projet. Il reste utile aujourd'hui pour les tests LOCAL, mais n'est jamais canonique.
+- Les gros artefacts générés (par exemple `pyodide/`) peuvent rester hors Git si leur procédure de régénération est documentée et reproductible.
+
 ## Organisation
 - `docs/terrain-de-jeu/` : cadrage et décisions ;
 - `terrain-de-jeu/` : prototype/harnais Next.js ;
