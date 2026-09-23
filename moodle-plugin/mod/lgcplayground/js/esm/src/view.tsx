@@ -63,6 +63,8 @@ type AjaxEnvelope = {
     };
 };
 
+type WorkflowState = 'edit' | 'run' | 'validate' | 'complete';
+
 const EMPTY_PROGRESS: Progress = {
     attempts: 0,
     passed: false,
@@ -73,7 +75,7 @@ const text = (value: Localized, locale: Locale) => value[locale] ?? value.en;
 
 const firstIncompleteMission = (missions: Mission[], progress: ProgressByMission) => {
     const index = missions.findIndex((mission) => !progress[mission.id]?.passed);
-    return index >= 0 ? index : 0;
+    return index >= 0 ? index : Math.max(0, missions.length - 1);
 };
 
 const allMissionsPassed = (missions: Mission[], progress: ProgressByMission) => (
@@ -113,8 +115,19 @@ export default function PlaygroundView({
 
     useEffect(() => () => resetPythonRuntime(), []);
 
+    const isMissionUnlocked = (index: number) => (
+        index === 0 || missions
+            .slice(0, index)
+            .every((item) => progressByMission[item.id]?.passed)
+    );
+
     const selectMission = (nextIndex: number) => {
-        if (nextIndex === missionIndex || running || syncing) {
+        if (
+            nextIndex === missionIndex
+            || running
+            || syncing
+            || !isMissionUnlocked(nextIndex)
+        ) {
             return;
         }
 
@@ -147,7 +160,7 @@ export default function PlaygroundView({
         setHintCount((current) => Math.min(current + 1, mission.hints.length));
     };
 
-    const runCode = async () => {
+    const runCode = async() => {
         setRunning(true);
         setRuntimeError('');
         const execution = await runPythonInSandbox(code);
@@ -156,7 +169,9 @@ export default function PlaygroundView({
         setOutput(execution.output || execution.error || '');
         if (!execution.ok) {
             setRuntimeError(execution.timedOut
-                ? (locale === 'fr' ? 'Exécution interrompue après 5 secondes.' : 'Execution stopped after 5 seconds.')
+                ? (locale === 'fr'
+                    ? 'Exécution interrompue après 5 secondes. Vérifie les boucles qui ne se terminent jamais.'
+                    : 'Execution stopped after 5 seconds. Check for loops that never finish.')
                 : (execution.error || (locale === 'fr' ? 'Erreur Python.' : 'Python error.')));
         }
     };
@@ -179,15 +194,17 @@ export default function PlaygroundView({
 
         if (!ok && lastRunCode === code && !runtimeError) {
             setRuntimeError(locale === 'fr'
-                ? 'La sortie ne correspond pas encore à l’objectif.'
-                : 'The output does not match the objective yet.');
+                ? 'Pas encore. Compare la sortie avec l’objectif, corrige ton code puis réessaie.'
+                : 'Not yet. Compare the output with the objective, fix your code, then try again.');
         }
 
         if (!canPersist) {
             updateLocalProgress({
                 attempts: attempts + 1,
                 passed: passed || ok,
-                timepassed: (passed || ok) ? (missionProgress.timepassed || Math.floor(Date.now() / 1000)) : 0,
+                timepassed: (passed || ok)
+                    ? (missionProgress.timepassed || Math.floor(Date.now() / 1000))
+                    : 0,
             });
             return;
         }
@@ -235,8 +252,8 @@ export default function PlaygroundView({
         } catch (error) {
             setSyncError(
                 locale === 'fr'
-                    ? 'La validation locale a fonctionné, mais Moodle n’a pas pu enregistrer la progression.'
-                    : 'Local validation worked, but Moodle could not save progress.',
+                    ? 'La mission est validée localement, mais Moodle n’a pas pu synchroniser la progression.'
+                    : 'The mission passed locally, but Moodle could not sync progress.',
             );
         } finally {
             setSyncing(false);
@@ -244,23 +261,81 @@ export default function PlaygroundView({
     };
 
     const completedCount = missions.filter((item) => progressByMission[item.id]?.passed).length;
+    const completionPercent = missions.length > 0
+        ? Math.round((completedCount / missions.length) * 100)
+        : 0;
+
+    const workflowState: WorkflowState = passed
+        ? 'complete'
+        : running
+            ? 'run'
+            : lastRunCode === code
+                ? 'validate'
+                : 'edit';
+
+    const workflowClass = (step: 'edit' | 'run' | 'validate') => {
+        const order = {edit: 0, run: 1, validate: 2};
+        const current = workflowState === 'complete' ? 3 : order[workflowState];
+        const stepIndex = order[step];
+
+        if (workflowState === 'complete' || stepIndex < current) {
+            return 'is-done';
+        }
+        return stepIndex === current ? 'is-current' : '';
+    };
 
     return (
         <main className="mod-lgcplayground-app" data-cmid={courseModuleId}>
+            <header className="mod-lgcplayground-topbar">
+                <div className="mod-lgcplayground-brand">
+                    <span>{locale === 'fr' ? 'Laboratoire interactif' : 'Interactive lab'}</span>
+                    <strong>{activityName}</strong>
+                </div>
+                <div className="mod-lgcplayground-runtime-status" aria-label={locale === 'fr' ? 'État du laboratoire' : 'Lab status'}>
+                    <span className="is-ready">
+                        <span aria-hidden="true">●</span>
+                        {locale === 'fr' ? 'Python navigateur' : 'Browser Python'}
+                    </span>
+                    <span className={canPersist ? 'is-ready' : 'is-demo'}>
+                        <span aria-hidden="true">{canPersist ? '●' : '○'}</span>
+                        {canPersist
+                            ? (locale === 'fr' ? 'Progression Moodle' : 'Moodle progress')
+                            : (locale === 'fr' ? 'Mode démo' : 'Demo mode')}
+                    </span>
+                </div>
+            </header>
+
             <nav
                 className="mod-lgcplayground-missions"
                 aria-label={locale === 'fr' ? 'Missions du parcours' : 'Track missions'}
             >
                 <div className="mod-lgcplayground-missions-summary">
-                    <strong>{activityName}</strong>
-                    <span>
-                        {completedCount}/{missions.length} {locale === 'fr' ? 'missions réussies' : 'missions complete'}
-                    </span>
+                    <div>
+                        <strong>
+                            {locale === 'fr' ? 'Parcours Python' : 'Python track'}
+                        </strong>
+                        <span>
+                            {completedCount}/{missions.length} {locale === 'fr' ? 'missions réussies' : 'missions complete'}
+                        </span>
+                    </div>
+                    <span>{completionPercent}%</span>
+                </div>
+                <div
+                    className="mod-lgcplayground-progressbar"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={missions.length}
+                    aria-valuenow={completedCount}
+                    aria-label={locale === 'fr' ? 'Progression du parcours' : 'Track progress'}
+                >
+                    <span style={{width: `${completionPercent}%`}} />
                 </div>
                 <div className="mod-lgcplayground-mission-list">
                     {missions.map((item, index) => {
                         const itemPassed = progressByMission[item.id]?.passed ?? false;
                         const active = index === missionIndex;
+                        const unlocked = isMissionUnlocked(index);
+
                         return (
                             <button
                                 key={item.id}
@@ -269,17 +344,20 @@ export default function PlaygroundView({
                                     'mod-lgcplayground-mission-tab',
                                     active ? 'is-active' : '',
                                     itemPassed ? 'is-passed' : '',
+                                    !unlocked ? 'is-locked' : '',
                                 ].filter(Boolean).join(' ')}
                                 aria-current={active ? 'step' : undefined}
                                 onClick={() => selectMission(index)}
-                                disabled={running || syncing}
+                                disabled={running || syncing || !unlocked}
                             >
                                 <span>{String(item.order).padStart(2, '0')}</span>
                                 <strong>{text(item.title, locale)}</strong>
                                 <small>
                                     {itemPassed
-                                        ? (locale === 'fr' ? 'Réussie' : 'Complete')
-                                        : (locale === 'fr' ? 'À faire' : 'To do')}
+                                        ? (locale === 'fr' ? '✓ Réussie' : '✓ Complete')
+                                        : unlocked
+                                            ? (locale === 'fr' ? 'À faire' : 'To do')
+                                            : (locale === 'fr' ? 'Verrouillée' : 'Locked')}
                                 </small>
                             </button>
                         );
@@ -288,23 +366,35 @@ export default function PlaygroundView({
             </nav>
 
             {activityPassed && (
-                <div className="mod-lgcplayground-track-success" role="status">
-                    <strong>{locale === 'fr' ? 'Parcours validé' : 'Track complete'}</strong>
-                    <span>
-                        {locale === 'fr'
-                            ? 'Toutes les missions requises sont réussies dans Moodle.'
-                            : 'All required missions are complete in Moodle.'}
-                    </span>
+                <div className="mod-lgcplayground-track-success" role="status" aria-live="polite">
+                    <div>
+                        <span className="mod-lgcplayground-success-icon" aria-hidden="true">✓</span>
+                        <div>
+                            <strong>{locale === 'fr' ? 'Parcours validé' : 'Track complete'}</strong>
+                            <span>
+                                {locale === 'fr'
+                                    ? 'Toutes les missions requises sont réussies et la completion Moodle est à jour.'
+                                    : 'All required missions are complete and Moodle completion is up to date.'}
+                            </span>
+                        </div>
+                    </div>
+                    <span>{missions.length}/{missions.length}</span>
                 </div>
             )}
 
-            <header className="mod-lgcplayground-hero">
-                <span className="mod-lgcplayground-kicker">
-                    LGC Playground · {track} · {missionIndex + 1}/{missions.length}
-                </span>
-                <h2>{text(mission.title, locale)}</h2>
-                <p>{text(mission.scenario, locale)}</p>
-            </header>
+            <section className="mod-lgcplayground-mission-header">
+                <div className="mod-lgcplayground-mission-number">
+                    <span>{locale === 'fr' ? 'Mission' : 'Mission'}</span>
+                    <strong>{String(missionIndex + 1).padStart(2, '0')}</strong>
+                </div>
+                <div className="mod-lgcplayground-hero">
+                    <span className="mod-lgcplayground-kicker">
+                        {track} · {missionIndex + 1}/{missions.length}
+                    </span>
+                    <h2>{text(mission.title, locale)}</h2>
+                    <p>{text(mission.scenario, locale)}</p>
+                </div>
+            </section>
 
             <section className="mod-lgcplayground-objective">
                 <span>{locale === 'fr' ? 'Objectif' : 'Objective'}</span>
@@ -317,11 +407,35 @@ export default function PlaygroundView({
                 ))}
             </div>
 
+            <ol className="mod-lgcplayground-workflow" aria-label={locale === 'fr' ? 'Étapes de travail' : 'Workflow'}>
+                <li className={workflowClass('edit')}>
+                    <span>1</span>
+                    <div>
+                        <strong>{locale === 'fr' ? 'Coder' : 'Code'}</strong>
+                        <small>{locale === 'fr' ? 'Modifie le programme' : 'Edit the program'}</small>
+                    </div>
+                </li>
+                <li className={workflowClass('run')}>
+                    <span>2</span>
+                    <div>
+                        <strong>{locale === 'fr' ? 'Exécuter' : 'Run'}</strong>
+                        <small>{locale === 'fr' ? 'Observe la sortie' : 'Inspect the output'}</small>
+                    </div>
+                </li>
+                <li className={workflowClass('validate')}>
+                    <span>3</span>
+                    <div>
+                        <strong>{locale === 'fr' ? 'Valider' : 'Validate'}</strong>
+                        <small>{locale === 'fr' ? 'Enregistre la réussite' : 'Save the success'}</small>
+                    </div>
+                </li>
+            </ol>
+
             <section className="mod-lgcplayground-workspace">
                 <div className="mod-lgcplayground-editor">
                     <div className="mod-lgcplayground-pane-title">
                         <span>{mission.fileName}</span>
-                        <span>{missionPack}</span>
+                        <span>{locale === 'fr' ? 'Python · exécution locale' : 'Python · local runtime'}</span>
                     </div>
                     <textarea
                         spellCheck={false}
@@ -331,81 +445,123 @@ export default function PlaygroundView({
                             setRuntimeError('');
                             setSyncError('');
                         }}
+                        onKeyDown={(event) => {
+                            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                                event.preventDefault();
+                                if (!running) {
+                                    void runCode();
+                                }
+                            }
+                        }}
                         aria-label={mission.fileName}
                     />
                     <div className="mod-lgcplayground-actions">
-                        <button
-                            type="button"
-                            className="btn btn-outline-secondary"
-                            onClick={resetMission}
-                        >
-                            {locale === 'fr' ? 'Réinitialiser' : 'Reset'}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-outline-primary"
-                            onClick={showHint}
-                            disabled={hintCount >= mission.hints.length}
-                        >
-                            {locale === 'fr' ? 'Indice' : 'Hint'}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={runCode} disabled={running}>
-                            {running
-                                ? (locale === 'fr' ? 'Exécution…' : 'Running…')
-                                : (locale === 'fr' ? 'Exécuter' : 'Run')}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-success"
-                            onClick={validate}
-                            disabled={running || syncing || lastRunCode !== code}
-                        >
-                            {syncing
-                                ? (locale === 'fr' ? 'Enregistrement…' : 'Saving…')
-                                : (locale === 'fr' ? 'Valider' : 'Validate')}
-                        </button>
+                        <div className="mod-lgcplayground-secondary-actions">
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={resetMission}
+                            >
+                                {locale === 'fr' ? 'Réinitialiser' : 'Reset'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary"
+                                onClick={showHint}
+                                disabled={hintCount >= mission.hints.length}
+                            >
+                                {locale === 'fr'
+                                    ? `Indice${hintCount ? ` ${hintCount}/${mission.hints.length}` : ''}`
+                                    : `Hint${hintCount ? ` ${hintCount}/${mission.hints.length}` : ''}`}
+                            </button>
+                        </div>
+                        <div className="mod-lgcplayground-primary-actions">
+                            <button
+                                type="button"
+                                className="btn btn-primary mod-lgcplayground-run"
+                                onClick={runCode}
+                                disabled={running}
+                            >
+                                <span>
+                                    {running
+                                        ? (locale === 'fr' ? 'Exécution…' : 'Running…')
+                                        : (locale === 'fr' ? '▶ Exécuter' : '▶ Run')}
+                                </span>
+                                {!running && <kbd>{locale === 'fr' ? 'Ctrl↵' : 'Ctrl↵'}</kbd>}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-success"
+                                onClick={validate}
+                                disabled={running || syncing || lastRunCode !== code}
+                            >
+                                {syncing
+                                    ? (locale === 'fr' ? 'Synchronisation…' : 'Syncing…')
+                                    : (locale === 'fr' ? '✓ Valider' : '✓ Validate')}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <aside className="mod-lgcplayground-side">
-                    <strong>{activityName}</strong>
-                    <p>
-                        {locale === 'fr'
-                            ? 'Python s’exécute dans un Web Worker isolé du navigateur.'
-                            : 'Python runs in an isolated browser Web Worker.'}
-                    </p>
+                    <div className="mod-lgcplayground-console-title">
+                        <div>
+                            <span aria-hidden="true">›_</span>
+                            <strong>{locale === 'fr' ? 'Console' : 'Console'}</strong>
+                        </div>
+                        <small>{running ? (locale === 'fr' ? 'en cours' : 'running') : (locale === 'fr' ? 'prête' : 'ready')}</small>
+                    </div>
 
-                    <div className="mod-lgcplayground-output">
-                        <span>{locale === 'fr' ? 'Sortie' : 'Output'}</span>
-                        <pre>{output || (locale === 'fr' ? 'La sortie apparaîtra ici.' : 'Output will appear here.')}</pre>
+                    <div className="mod-lgcplayground-runtime-note">
+                        <span aria-hidden="true">●</span>
+                        <p>
+                            {locale === 'fr'
+                                ? 'Ton code reste dans le navigateur. Seule ta progression est synchronisée avec Moodle.'
+                                : 'Your code stays in the browser. Only progress is synced with Moodle.'}
+                        </p>
+                    </div>
+
+                    <div className="mod-lgcplayground-output" aria-live="polite">
+                        <span>{locale === 'fr' ? 'Sortie du programme' : 'Program output'}</span>
+                        <pre>{output || (locale === 'fr' ? 'Prêt. Exécute ton code pour voir la sortie.' : 'Ready. Run your code to see the output.')}</pre>
                     </div>
 
                     <p className="mod-lgcplayground-progress">
                         {canPersist
                             ? (locale === 'fr'
-                                ? `Progression Moodle · ${attempts} validation(s)`
-                                : `Moodle progress · ${attempts} validation attempt(s)`)
+                                ? `Tentatives de validation : ${attempts} · progression Moodle active`
+                                : `Validation attempts: ${attempts} · Moodle progress active`)
                             : (locale === 'fr'
-                                ? 'Mode invité · progression conservée pour cette page seulement'
-                                : 'Guest mode · progress is kept for this page only')}
+                                ? 'Mode démo · progression conservée pour cette page seulement'
+                                : 'Demo mode · progress is kept for this page only')}
                     </p>
 
-                    {runtimeError && <p className="mod-lgcplayground-error">{runtimeError}</p>}
-                    {syncError && <p className="mod-lgcplayground-error">{syncError}</p>}
+                    {runtimeError && (
+                        <p className="mod-lgcplayground-error" role="alert">{runtimeError}</p>
+                    )}
+                    {syncError && (
+                        <p className="mod-lgcplayground-error" role="alert">{syncError}</p>
+                    )}
 
                     {passed && (
-                        <div className="mod-lgcplayground-success">
-                            <strong>{locale === 'fr' ? 'Mission validée' : 'Mission complete'}</strong>
+                        <div className="mod-lgcplayground-success" aria-live="polite">
+                            <div className="mod-lgcplayground-success-heading">
+                                <span aria-hidden="true">✓</span>
+                                <strong>{locale === 'fr' ? 'Mission validée' : 'Mission complete'}</strong>
+                            </div>
                             <p>{text(mission.debrief, locale)}</p>
-                            <p><strong>{locale === 'fr' ? 'Bonus' : 'Bonus'}:</strong> {text(mission.bonus, locale)}</p>
+                            <div className="mod-lgcplayground-bonus">
+                                <strong>{locale === 'fr' ? 'Pour aller plus loin' : 'Go further'}</strong>
+                                <span>{text(mission.bonus, locale)}</span>
+                            </div>
                             {missionIndex < missions.length - 1 && (
                                 <button
                                     type="button"
-                                    className="btn btn-outline-success btn-sm"
+                                    className="btn btn-success btn-sm"
                                     onClick={() => selectMission(missionIndex + 1)}
                                     disabled={running || syncing}
                                 >
-                                    {locale === 'fr' ? 'Mission suivante' : 'Next mission'}
+                                    {locale === 'fr' ? 'Mission suivante →' : 'Next mission →'}
                                 </button>
                             )}
                         </div>
@@ -418,7 +574,7 @@ export default function PlaygroundView({
                         </div>
                     ))}
 
-                    <a href={mission.reference.href} target="_blank" rel="noreferrer">
+                    <a className="mod-lgcplayground-reference" href={mission.reference.href} target="_blank" rel="noreferrer">
                         {text(mission.reference.label, locale)} ↗
                     </a>
                 </aside>
