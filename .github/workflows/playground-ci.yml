@@ -79,3 +79,78 @@ jobs:
           test -s moodle-plugin/mod/lgcplayground/js/esm/build/pythonRuntime.js
           test -s moodle-plugin/mod/lgcplayground/pyodide-worker.mjs
           test -s moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+  package-moodle-plugin:
+    if: github.event_name == 'push'
+    needs:
+      - verify-moodle-plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: terrain-de-jeu/package-lock.json
+
+      - name: Install pinned runtime dependencies
+        working-directory: terrain-de-jeu
+        run: npm ci
+
+      - name: Prepare self-hosted Pyodide assets
+        run: node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+
+      - name: Build deterministic Moodle plugin ZIP
+        run: |
+          python3 moodle-plugin/mod/lgcplayground/tools/package-plugin.py \
+            --output-dir dist/playground-staging \
+            --commit "$GITHUB_SHA"
+          cat dist/playground-staging/SHA256SUMS
+
+      - name: Verify package contract
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import zipfile
+
+          root = pathlib.Path('dist/playground-staging')
+          manifest_path = next(root.glob('lgcplayground-*.manifest.json'))
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          archive = root / manifest['archive']
+
+          assert manifest['repository'] == 'giusmili/cours-python'
+          assert manifest['component'] == 'mod_lgcplayground'
+          assert manifest['commit'] == os.environ['EXPECTED_SHA']
+          assert archive.is_file() and archive.stat().st_size > 0
+
+          with zipfile.ZipFile(archive) as zf:
+              names = [name for name in zf.namelist() if not name.endswith('/')]
+              assert names
+              assert all(name.startswith('lgcplayground/') for name in names)
+              required = {
+                  'lgcplayground/version.php',
+                  'lgcplayground/view.php',
+                  'lgcplayground/pyodide-worker.mjs',
+                  'lgcplayground/pyodide/pyodide.mjs',
+                  'lgcplayground/pyodide/pyodide.asm.wasm',
+                  'lgcplayground/pyodide/python_stdlib.zip',
+              }
+              assert required.issubset(names)
+
+          print(f'verified {archive.name}: {len(names)} files')
+          PY
+
+      - name: Upload STAGING-ready Moodle plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: lgcplayground-staging-${{ github.sha }}
+          path: dist/playground-staging/
+          if-no-files-found: error
+          retention-days: 14
