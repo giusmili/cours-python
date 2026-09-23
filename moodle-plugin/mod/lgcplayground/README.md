@@ -68,3 +68,27 @@ The persistence slice was validated with a named enrolled LOCAL student:
 The current pass is deliberately low-stakes: "passed" means the browser mission engine validated the exercise. It is a stable Moodle fact, but Roads must still decide whether that fact is sufficient achievement evidence for a curriculum milestone.
 
 Next slice: harden the proof contract and tests, then migrate further missions only when the Moodle-owned state semantics remain clean.
+
+
+## PHPUnit regression suite
+
+The Moodle-owned progress contract now has a focused PHPUnit suite covering:
+- mission-pack identifiers and ordering;
+- path-traversal rejection for pack ids;
+- failed/pass attempt persistence;
+- monotonic pass state;
+- per-user/per-mission isolation;
+- all-required-missions completion semantics;
+- the authenticated progress endpoint;
+- Moodle activity completion.
+
+On the prepared Moodle LOCAL recipe:
+
+```bash
+docker exec -w /var/www/moodle moodle-coursefactory-recipe-web-1 \
+  vendor/bin/phpunit --testsuite mod_lgcplayground_testsuite
+```
+
+Current result: **10 tests, 42 assertions, green** on Moodle 5.2.3+ / PHP 8.4.
+
+The LOCAL recipe has a dedicated PHPUnit prefix/dataroot and the `en_AU.UTF-8` locale required by Moodle's test bootstrap. If that disposable container is rebuilt, rerun Moodle's PHPUnit init before the suite.
