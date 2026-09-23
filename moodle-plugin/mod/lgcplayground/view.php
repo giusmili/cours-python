@@ -2,6 +2,7 @@
 require_once('../../config.php');
 
 use mod_lgcplayground\local\mission_repository;
+use mod_lgcplayground\local\progress_repository;
 
 $id = required_param('id', PARAM_INT);
 
@@ -23,6 +24,11 @@ $mission = mission_repository::first_for_track($pack, (string)$activity->track);
 $currentlanguage = current_language();
 $locale = str_starts_with($currentlanguage, 'fr') ? 'fr' : 'en';
 
+$canpersist = !isguestuser($USER);
+$progress = $canpersist
+    ? progress_repository::export_mission((int)$activity->id, (int)$USER->id, (string)$mission['id'])
+    : ['attempts' => 0, 'passed' => false, 'timepassed' => 0];
+
 $props = [
     'activityName' => format_string($activity->name),
     'track' => (string)$activity->track,
@@ -30,6 +36,8 @@ $props = [
     'courseModuleId' => (int)$cm->id,
     'locale' => $locale,
     'mission' => $mission,
+    'progress' => $progress,
+    'canPersist' => $canpersist,
 ];
 
 $templatecontext = [
