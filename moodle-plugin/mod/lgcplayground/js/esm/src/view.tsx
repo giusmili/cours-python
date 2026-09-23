@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
+import {resetPythonRuntime, runPythonInSandbox} from './pythonRuntime';
 
 type Locale = 'fr' | 'en';
 
@@ -50,9 +51,39 @@ export default function PlaygroundView({
 }: PlaygroundViewProps) {
     const [code, setCode] = useState(mission.starter);
     const [hintCount, setHintCount] = useState(0);
+    const [output, setOutput] = useState('');
+    const [running, setRunning] = useState(false);
+    const [lastRunCode, setLastRunCode] = useState<string | null>(null);
+    const [passed, setPassed] = useState(false);
+    const [runtimeError, setRuntimeError] = useState('');
+
+    useEffect(() => () => resetPythonRuntime(), []);
 
     const showHint = () => {
         setHintCount((current) => Math.min(current + 1, mission.hints.length));
+    };
+
+    const runCode = async () => {
+        setRunning(true);
+        setRuntimeError('');
+        setPassed(false);
+        const execution = await runPythonInSandbox(code);
+        setRunning(false);
+        setLastRunCode(code);
+        setOutput(execution.output || execution.error || '');
+        if (!execution.ok) {
+            setRuntimeError(execution.timedOut
+                ? (locale === 'fr' ? 'Exécution interrompue après 5 secondes.' : 'Execution stopped after 5 seconds.')
+                : (execution.error || (locale === 'fr' ? 'Erreur Python.' : 'Python error.')));
+        }
+    };
+
+    const validate = () => {
+        const ok = lastRunCode === code && output.trim() === mission.validation.expectedOutput.trim();
+        setPassed(ok);
+        if (!ok && lastRunCode === code && !runtimeError) {
+            setRuntimeError(locale === 'fr' ? 'La sortie ne correspond pas encore à l’objectif.' : 'The output does not match the objective yet.');
+        }
     };
 
     return (
@@ -83,7 +114,11 @@ export default function PlaygroundView({
                     <textarea
                         spellCheck={false}
                         value={code}
-                        onChange={(event) => setCode(event.target.value)}
+                        onChange={(event) => {
+                            setCode(event.target.value);
+                            setPassed(false);
+                            setRuntimeError('');
+                        }}
                         aria-label={mission.fileName}
                     />
                     <div className="mod-lgcplayground-actions">
@@ -102,19 +137,38 @@ export default function PlaygroundView({
                         >
                             {locale === 'fr' ? 'Indice' : 'Hint'}
                         </button>
-                        <button type="button" className="btn btn-primary" disabled>
-                            {locale === 'fr' ? 'Exécuter — runtime suivant' : 'Run — runtime next'}
+                        <button type="button" className="btn btn-primary" onClick={runCode} disabled={running}>
+                            {running ? (locale === 'fr' ? 'Exécution…' : 'Running…') : (locale === 'fr' ? 'Exécuter' : 'Run')}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-success"
+                            onClick={validate}
+                            disabled={running || lastRunCode !== code}
+                        >
+                            {locale === 'fr' ? 'Valider' : 'Validate'}
                         </button>
                     </div>
                 </div>
 
                 <aside className="mod-lgcplayground-side">
                     <strong>{activityName}</strong>
-                    <p>
-                        {locale === 'fr'
-                            ? 'La mission arrive maintenant de Moodle/PHP. Le runtime Python navigateur sera branché dans la tranche suivante.'
-                            : 'The mission now comes from Moodle/PHP. The browser Python runtime is the next slice.'}
-                    </p>
+                    <p>{locale === 'fr' ? 'Python s’exécute dans un Web Worker isolé du navigateur.' : 'Python runs in an isolated browser Web Worker.'}</p>
+
+                    <div className="mod-lgcplayground-output">
+                        <span>{locale === 'fr' ? 'Sortie' : 'Output'}</span>
+                        <pre>{output || (locale === 'fr' ? 'La sortie apparaîtra ici.' : 'Output will appear here.')}</pre>
+                    </div>
+
+                    {runtimeError && <p className="mod-lgcplayground-error">{runtimeError}</p>}
+
+                    {passed && (
+                        <div className="mod-lgcplayground-success">
+                            <strong>{locale === 'fr' ? 'Mission validée' : 'Mission complete'}</strong>
+                            <p>{text(mission.debrief, locale)}</p>
+                            <p><strong>{locale === 'fr' ? 'Bonus' : 'Bonus'}:</strong> {text(mission.bonus, locale)}</p>
+                        </div>
+                    )}
 
                     {mission.hints.slice(0, hintCount).map((hint, index) => (
                         <div className="mod-lgcplayground-hint" key={index}>

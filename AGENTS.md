@@ -24,6 +24,16 @@ Toute mutation partagée doit :
 
 Ne jamais contourner le git gate AgentCtl. Pour un push local, utiliser le worktree/session prévu ou `agentctl run`.
 
+Le projet peut être travaillé par plusieurs agents ou passes planifiées. Un lease marqué `stale` n'est jamais volé automatiquement : vérifier l'état externe (heartbeat, branche distante, processus éventuel), puis utiliser uniquement la récupération explicite `session-abandon` via le broker admin si l'agent a réellement disparu.
+
+### Moodle LOCAL
+Projet : `cours-python-playground-local`.
+Ressources :
+- `instance:moodle/mint-recipe`
+- `host:mint/docker`
+
+Acquérir ces ressources avant toute mutation du Moodle LOCAL ou de ses conteneurs. Le lease repo reste séparé : un test LOCAL d'un commit déjà existant ne nécessite pas de verrouiller GitHub.
+
 ### Déploiement preview LGC
 Projet : `cours-python-playground-deploy`.
 

@@ -71,7 +71,11 @@ jobs:
           print('install.xml well-formed')
           PY
 
-      - name: Moodle React build artifact present
+      - name: Moodle React/runtime artifacts present
         run: |
           test -s moodle-plugin/mod/lgcplayground/js/esm/src/view.tsx
+          test -s moodle-plugin/mod/lgcplayground/js/esm/src/pythonRuntime.ts
           test -s moodle-plugin/mod/lgcplayground/js/esm/build/view.js
+          test -s moodle-plugin/mod/lgcplayground/js/esm/build/pythonRuntime.js
+          test -s moodle-plugin/mod/lgcplayground/pyodide-worker.mjs
+          test -s moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs

@@ -20,16 +20,18 @@ The existing `terrain-de-jeu/` Next.js application remains the reference harness
 Implemented:
 - installable activity table;
 - add/update/delete callbacks;
-- capabilities;
-- activity creation form;
+- capabilities and activity creation form;
 - Moodle-native React/TypeScript mount point;
-- bilingual strings.
+- bilingual mission P0 loaded from Moodle/PHP;
+- isolated browser Python runtime (Web Worker + self-hosted Pyodide core assets);
+- Run, output, validation, hints, debrief and bonus for P0;
+- 5 s runaway-code timeout and blocked browser network capability in the Python worker.
 
 Not implemented yet:
 - learner attempts/progress persistence;
 - custom Moodle completion rule;
 - AJAX/external service endpoints;
-- migration of the existing mission engine;
+- migration of the remaining mission catalogue;
 - backup/restore;
 - grading;
 - Roads binding automation.
@@ -44,8 +46,13 @@ Validated on the Linux LOCAL recipe against Moodle **5.2.3+ (Build: 20260916)**:
 - every PHP file passes `php -l`;
 - `db/install.xml` is well-formed;
 - Moodle's own React build pipeline compiles the component successfully;
-- the compiled ESM artifact is committed under `js/esm/build`.
+- the compiled ESM artifacts are committed under `js/esm/build`;
+- a real LOCAL activity instance (CMID 142 in the test course) renders P0 in Chromium;
+- Run executes Python through the browser worker and returns `SYSTEM ONLINE`;
+- validation displays the success/debrief state;
+- `js.fetch()` from student Python is blocked by the worker sandbox;
+- `while True: pass` is interrupted after about 5 seconds without freezing the Moodle page.
 
-The remaining end-to-end validation for this shell is a real browser visit to an activity instance. That is intentionally separate from the architecture/build validation.
+The browser E2E used LOCAL guest course access so it could remain credential-free in automation. A named enrolled-student pass is still worth doing before persistence/completion becomes the source of truth.
 
-After that, the next functional slice migrates one real Python mission and only then adds per-user state/completion.
+Next slice: Moodle-owned learner progress/tentative persistence and explicit completion semantics. Do not add more mission volume until that contract is clean.
