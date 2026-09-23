@@ -16,7 +16,10 @@ fail() { printf '[playground-dev] ERROR: %s\n' "$*" >&2; exit 1; }
 requested_sha="${1:-}"
 [[ "$requested_sha" =~ ^[0-9a-f]{40}$ ]] || fail 'expected one 40-hex commit SHA'
 
-mkdir -p "$STATE_DIR"
+mkdir -p "$STATE_DIR" "$STATE_DIR/docker-config"
+chmod 0700 "$STATE_DIR/docker-config"
+export DOCKER_CONFIG="$STATE_DIR/docker-config"
+
 exec 9>/run/playground-dev/deploy.lock
 flock -n 9 || fail 'another playground deployment is already running'
 
