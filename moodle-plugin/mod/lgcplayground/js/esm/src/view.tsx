@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import {call} from 'core/ajax';
 import {resetPythonRuntime, runPythonInSandbox} from './pythonRuntime';
 
 type Locale = 'fr' | 'en';
@@ -30,6 +31,16 @@ type Mission = {
     };
 };
 
+type Progress = {
+    attempts: number;
+    passed: boolean;
+    timepassed: number;
+};
+
+type ProgressResponse = Progress & {
+    activitypassed: boolean;
+};
+
 type PlaygroundViewProps = {
     activityName: string;
     track: 'python' | 'web' | string;
@@ -37,6 +48,8 @@ type PlaygroundViewProps = {
     courseModuleId: number;
     locale: Locale;
     mission: Mission;
+    progress: Progress;
+    canPersist: boolean;
 };
 
 const text = (value: Localized, locale: Locale) => value[locale] ?? value.en;
@@ -48,13 +61,18 @@ export default function PlaygroundView({
     courseModuleId,
     locale,
     mission,
+    progress,
+    canPersist,
 }: PlaygroundViewProps) {
     const [code, setCode] = useState(mission.starter);
     const [hintCount, setHintCount] = useState(0);
     const [output, setOutput] = useState('');
     const [running, setRunning] = useState(false);
     const [lastRunCode, setLastRunCode] = useState<string | null>(null);
-    const [passed, setPassed] = useState(false);
+    const [passed, setPassed] = useState(progress.passed);
+    const [attempts, setAttempts] = useState(progress.attempts);
+    const [syncing, setSyncing] = useState(false);
+    const [syncError, setSyncError] = useState('');
     const [runtimeError, setRuntimeError] = useState('');
 
     useEffect(() => () => resetPythonRuntime(), []);
@@ -66,7 +84,6 @@ export default function PlaygroundView({
     const runCode = async () => {
         setRunning(true);
         setRuntimeError('');
-        setPassed(false);
         const execution = await runPythonInSandbox(code);
         setRunning(false);
         setLastRunCode(code);
@@ -78,11 +95,40 @@ export default function PlaygroundView({
         }
     };
 
-    const validate = () => {
+    const validate = async() => {
         const ok = lastRunCode === code && output.trim() === mission.validation.expectedOutput.trim();
-        setPassed(ok);
+        setPassed((current) => current || ok);
+
         if (!ok && lastRunCode === code && !runtimeError) {
             setRuntimeError(locale === 'fr' ? 'La sortie ne correspond pas encore à l’objectif.' : 'The output does not match the objective yet.');
+        }
+
+        if (!canPersist) {
+            return;
+        }
+
+        setSyncing(true);
+        setSyncError('');
+        try {
+            const response = await call([{
+                methodname: 'mod_lgcplayground_record_attempt',
+                args: {
+                    cmid: courseModuleId,
+                    missionid: mission.id,
+                    passed: ok,
+                },
+            }])[0] as ProgressResponse;
+
+            setAttempts(response.attempts);
+            setPassed(response.passed);
+        } catch (error) {
+            setSyncError(
+                locale === 'fr'
+                    ? 'La validation locale a fonctionné, mais Moodle n’a pas pu enregistrer la progression.'
+                    : 'Local validation worked, but Moodle could not save progress.',
+            );
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -116,8 +162,8 @@ export default function PlaygroundView({
                         value={code}
                         onChange={(event) => {
                             setCode(event.target.value);
-                            setPassed(false);
                             setRuntimeError('');
+                            setSyncError('');
                         }}
                         aria-label={mission.fileName}
                     />
@@ -144,9 +190,11 @@ export default function PlaygroundView({
                             type="button"
                             className="btn btn-success"
                             onClick={validate}
-                            disabled={running || lastRunCode !== code}
+                            disabled={running || syncing || lastRunCode !== code}
                         >
-                            {locale === 'fr' ? 'Valider' : 'Validate'}
+                            {syncing
+                                ? (locale === 'fr' ? 'Enregistrement…' : 'Saving…')
+                                : (locale === 'fr' ? 'Valider' : 'Validate')}
                         </button>
                     </div>
                 </div>
@@ -160,7 +208,18 @@ export default function PlaygroundView({
                         <pre>{output || (locale === 'fr' ? 'La sortie apparaîtra ici.' : 'Output will appear here.')}</pre>
                     </div>
 
+                    <p className="mod-lgcplayground-progress">
+                        {canPersist
+                            ? (locale === 'fr'
+                                ? `Progression Moodle · ${attempts} validation(s)`
+                                : `Moodle progress · ${attempts} validation attempt(s)`)
+                            : (locale === 'fr'
+                                ? 'Mode invité · progression non enregistrée'
+                                : 'Guest mode · progress is not saved')}
+                    </p>
+
                     {runtimeError && <p className="mod-lgcplayground-error">{runtimeError}</p>}
+                    {syncError && <p className="mod-lgcplayground-error">{syncError}</p>}
 
                     {passed && (
                         <div className="mod-lgcplayground-success">
