@@ -16,6 +16,7 @@ readonly USER_HOST_RUN="$DEPLOY_HOME/.local/bin/agentctl-host-run"
 readonly USER_AGENTCTL_CONFIG="$DEPLOY_HOME/.config/agentctl-worker/env"
 readonly PREVIEW_CONFIG_DIR="$DEPLOY_HOME/.config/playground-dev"
 readonly PREVIEW_ENV="$PREVIEW_CONFIG_DIR/env"
+readonly ROOT_PREVIEW_ENV='/etc/playground-dev/preview.env'
 
 id "$DEPLOY_USER" >/dev/null 2>&1 || {
   echo "Missing user: $DEPLOY_USER" >&2
@@ -66,7 +67,8 @@ PY
 fi
 
 chown "$DEPLOY_USER:$DEPLOY_USER" "$PREVIEW_ENV"
-chmod 0640 "$PREVIEW_ENV"
+chmod 0600 "$PREVIEW_ENV"
+install -o root -g root -m 0600 "$PREVIEW_ENV" "$ROOT_PREVIEW_ENV"
 
 systemd-tmpfiles --create /etc/tmpfiles.d/playground-dev.conf
 systemctl daemon-reload
