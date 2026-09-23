@@ -7,6 +7,7 @@ defined('MOODLE_INTERNAL') || die();
 
 use advanced_testcase;
 use completion_info;
+use mod_lgcplayground\local\mission_repository;
 
 /**
  * Tests for the authenticated progress endpoint.
@@ -40,31 +41,28 @@ final class record_attempt_test extends advanced_testcase {
         $this->assertFalse($failed['passed']);
         $this->assertFalse($failed['activitypassed']);
 
-        $passedp0 = record_attempt::execute(
-            (int)$activity->cmid,
-            'python-00-terminal',
-            true,
+        $missionids = mission_repository::ids_for_track(
+            mission_repository::load('python-basics-v1'),
+            'python',
         );
-        $this->assertSame(2, $passedp0['attempts']);
-        $this->assertTrue($passedp0['passed']);
-        $this->assertFalse($passedp0['activitypassed']);
-        $this->assertGreaterThan(0, $passedp0['timepassed']);
 
-        $passedp1 = record_attempt::execute(
-            (int)$activity->cmid,
-            'python-01-variables',
-            true,
-        );
-        $this->assertTrue($passedp1['passed']);
-        $this->assertFalse($passedp1['activitypassed']);
+        foreach ($missionids as $index => $missionid) {
+            $result = record_attempt::execute(
+                (int)$activity->cmid,
+                $missionid,
+                true,
+            );
+            $this->assertTrue($result['passed']);
+            $this->assertSame(
+                $index === array_key_last($missionids),
+                $result['activitypassed'],
+            );
 
-        $passedp2 = record_attempt::execute(
-            (int)$activity->cmid,
-            'python-02-types',
-            true,
-        );
-        $this->assertTrue($passedp2['passed']);
-        $this->assertTrue($passedp2['activitypassed']);
+            if ($missionid === 'python-00-terminal') {
+                $this->assertSame(2, $result['attempts']);
+                $this->assertGreaterThan(0, $result['timepassed']);
+            }
+        }
 
         $stored = $DB->get_record('lgcplayground_progress', [
             'playgroundid' => $activity->id,
