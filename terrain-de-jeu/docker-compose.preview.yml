@@ -1,11 +1,12 @@
 services:
   playground:
     container_name: playground-dev
+    image: "playground-dev:${PLAYGROUND_IMAGE_TAG:-latest}"
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env.preview
+      - "${PLAYGROUND_ENV_FILE:-.env.preview}"
     environment:
       NODE_ENV: production
     expose:
