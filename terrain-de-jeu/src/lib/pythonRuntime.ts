@@ -42,8 +42,9 @@ function destroyWorker() {
 }
 
 function makeWorker() {
-  const nextWorker = new Worker("/pyodide-worker.js", {
+  const nextWorker = new Worker("/pyodide-worker.mjs", {
     name: "playground-python",
+    type: "module",
   });
   worker = nextWorker;
   return nextWorker;
