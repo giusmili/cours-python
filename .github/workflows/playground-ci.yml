@@ -5,9 +5,6 @@ on:
     branches:
       - kevin/missions
       - "dev/**"
-    paths:
-      - "terrain-de-jeu/**"
-      - ".github/workflows/playground-ci.yml"
   pull_request:
     paths:
       - "terrain-de-jeu/**"
@@ -45,3 +42,6 @@ jobs:
 
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
+
+      - name: Build preview image
+        run: docker build -t playground-dev:ci .
