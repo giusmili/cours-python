@@ -170,3 +170,40 @@ Résultat courant :
 La suite couvre le repository de progression, la règle de completion, l'endpoint authentifié et le contrat minimal des packs de missions.
 
 Une reconstruction complète de l'environnement PHPUnit à partir de `install.xml` passe désormais sans les warnings XMLDB précédemment détectés sur les champs CHAR.
+
+
+## Checkpoint — parcours multi-mission P0–P2
+
+Le pack `python-basics-v1` n'est plus limité à P0.
+
+Missions actuellement exécutables :
+1. `python-00-terminal` — workflow exécuter/lire la sortie et `print()` ;
+2. `python-01-variables` — variables, `str`, `int` ;
+3. `python-02-types` — `float`, `bool`, `type()`.
+
+Le frontend Moodle reçoit maintenant la liste complète des missions et une map de progression par identifiant stable. Il ouvre la première mission non réussie, permet de naviguer entre les missions et garde les états indépendants.
+
+### Validation réelle
+
+Test Chromium avec un élève nommé :
+- P0 exécutée et validée ;
+- passage à P1, exécution et validation ;
+- passage à P2, exécution et validation ;
+- affichage du parcours `3/3` ;
+- `course_modules_completion.completionstate = 1` ;
+- nouveau contexte navigateur avec le même compte : les trois réussites et la completion sont restaurées depuis Moodle ;
+- aucune erreur console/page.
+
+La suite PHPUnit reste verte après l'élargissement du pack : **10 tests, 48 assertions**.
+
+### Note Pyodide LOCAL
+
+Le dossier `moodle-plugin/mod/lgcplayground/pyodide/` est volontairement ignoré par Git. Il doit être régénéré via `tools/prepare-pyodide.mjs` avant une copie complète du plugin dans Moodle LOCAL. Un `rm -rf` suivi d'un simple `git archive` supprime ces assets et provoque un échec de chargement du worker, sans que le moteur lui-même soit en cause.
+
+### Suite logique
+
+Le prochain ajout de contenu doit rester progressif. Avant d'ajouter des dizaines de missions :
+- consolider l'UX de navigation sur quelques missions ;
+- conserver les ids stables ;
+- ajouter ensuite conditions puis boucles avec la même boucle exécuter → feedback → validation → débrief ;
+- garder séparée la notion de progression Moodle et celle de preuve forte éventuellement consommée par Roads.

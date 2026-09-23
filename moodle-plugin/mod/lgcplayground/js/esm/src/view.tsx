@@ -187,7 +187,7 @@ export default function PlaygroundView({
             updateLocalProgress({
                 attempts: attempts + 1,
                 passed: passed || ok,
-                timepassed: (passed || ok) ? (missionProgress.timepassed || Date.now()) : 0,
+                timepassed: (passed || ok) ? (missionProgress.timepassed || Math.floor(Date.now() / 1000)) : 0,
             });
             return;
         }

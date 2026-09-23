@@ -52,5 +52,11 @@ function xmldb_lgcplayground_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2026092302, 'lgcplayground');
     }
 
+    if ($oldversion < 2026092303) {
+        // No schema change. Bump the plugin version so Moodle invalidates
+        // caches for the multi-mission React bundle and mission pack.
+        upgrade_mod_savepoint(true, 2026092303, 'lgcplayground');
+    }
+
     return true;
 }

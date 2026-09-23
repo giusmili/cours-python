@@ -22,9 +22,9 @@ Implemented:
 - add/update/delete callbacks;
 - capabilities and activity creation form;
 - Moodle-native React/TypeScript mount point;
-- bilingual mission P0 loaded from Moodle/PHP;
+- bilingual Python missions P0–P2 loaded from Moodle/PHP;
 - isolated browser Python runtime (Web Worker + self-hosted Pyodide core assets);
-- Run, output, validation, hints, debrief and bonus for P0;
+- multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P2;
 - 5 s runaway-code timeout and blocked browser network capability in the Python worker.
 
 Implemented in the current progress slice:
@@ -89,6 +89,37 @@ docker exec -w /var/www/moodle moodle-coursefactory-recipe-web-1 \
   vendor/bin/phpunit --testsuite mod_lgcplayground_testsuite
 ```
 
-Current result: **10 tests, 42 assertions, green** on Moodle 5.2.3+ / PHP 8.4.
+Current result: **10 tests, 48 assertions, green** on Moodle 5.2.3+ / PHP 8.4.
 
 The LOCAL recipe has a dedicated PHPUnit prefix/dataroot and the `en_AU.UTF-8` locale required by Moodle's test bootstrap. If that disposable container is rebuilt, rerun Moodle's PHPUnit init before the suite.
+
+
+## Multi-mission checkpoint
+
+The first Python pack now contains three small missions:
+- P0: execution workflow and `print()`;
+- P1: variables, `str` and `int`;
+- P2: `float`, `bool` and `type()`.
+
+The Moodle React shell:
+- renders the complete mission rail;
+- opens the first incomplete mission for an enrolled learner;
+- keeps validation state per mission;
+- restores all mission states from Moodle in a fresh browser context;
+- marks the activity complete only when every required mission id in the track has passed.
+
+Named-student Chromium E2E on LOCAL:
+`P0 -> P1 -> P2 -> fresh browser context` is green, with 3/3 progress restored and Moodle `completionstate=1`.
+
+### Pyodide assets in LOCAL
+
+The Pyodide core assets are intentionally ignored by Git because they are generated/vendor artifacts (~13 MB for the current core subset).
+
+Before copying a fresh Git checkout of the plugin into Moodle LOCAL, prepare them from the already installed `terrain-de-jeu/node_modules/pyodide`:
+
+```bash
+cd /home/ubuntu/projects/cours-python-playground
+node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+```
+
+Then copy/sync the plugin directory **including** its generated `pyodide/` folder. Replacing the Moodle plugin with a Git archive alone will otherwise remove those ignored assets and the Python worker will fail to load.

@@ -34,6 +34,10 @@ Ressources :
 
 Acquérir ces ressources avant toute mutation du Moodle LOCAL ou de ses conteneurs. Le lease repo reste séparé : un test LOCAL d'un commit déjà existant ne nécessite pas de verrouiller GitHub.
 
+Les assets `moodle-plugin/mod/lgcplayground/pyodide/` sont générés et ignorés par Git. Une copie du plugin depuis une archive Git ne les contient pas. Avant un E2E Python après remplacement complet du dossier LOCAL, exécuter dans le clone :
+`node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs`
+puis synchroniser le dossier du plugin avec `pyodide/`. Un worker qui échoue immédiatement après une copie Git peut simplement indiquer que ces assets ont été supprimés.
+
 ### Déploiement preview LGC
 Projet : `cours-python-playground-deploy`.
 
