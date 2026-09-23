@@ -5,7 +5,7 @@ function unauthorized() {
   return new NextResponse("Authentication required.", {
     status: 401,
     headers: {
-      "WWW-Authenticate": 'Basic realm="Terrain de jeu — preview", charset="UTF-8"',
+      "WWW-Authenticate": 'Basic realm="Terrain de jeu - preview", charset="UTF-8"',
       "Cache-Control": "no-store",
     },
   });
