@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly REPO_URL='https://github.com/giusmili/cours-python.git'
+readonly BRANCH='kevin/missions'
+readonly SOURCE_DIR='/opt/playground-dev-source'
+readonly STATE_DIR='/var/lib/playground-dev'
+readonly STATE_FILE="$STATE_DIR/deployed_commit"
+readonly ENV_FILE='/home/moodle-agent/.config/playground-dev/env'
+readonly COMPOSE_FILE='docker-compose.preview.yml'
+readonly PUBLIC_HEALTH='https://playground-dev.lagrandeclasse.fr/api/health'
+
+log() { printf '[playground-dev] %s\n' "$*"; }
+fail() { printf '[playground-dev] ERROR: %s\n' "$*" >&2; exit 1; }
+
+requested_sha="${1:-}"
+[[ "$requested_sha" =~ ^[0-9a-f]{40}$ ]] || fail 'expected one 40-hex commit SHA'
+
+mkdir -p "$STATE_DIR"
+exec 9>/run/playground-dev/deploy.lock
+flock -n 9 || fail 'another playground deployment is already running'
+
+[ -f "$ENV_FILE" ] || fail "missing preview environment: $ENV_FILE"
+[ -S /var/run/docker.sock ] || fail 'Docker socket unavailable'
+docker info >/dev/null 2>&1 || fail 'Docker daemon unavailable'
+
+if [ ! -d "$SOURCE_DIR/.git" ]; then
+  log 'creating dedicated source clone'
+  git clone --branch "$BRANCH" --single-branch "$REPO_URL" "$SOURCE_DIR"
+fi
+
+cd "$SOURCE_DIR"
+GIT=(git -c safe.directory="$SOURCE_DIR")
+
+remote="$("${GIT[@]}" remote get-url origin 2>/dev/null || true)"
+[ "$remote" = "$REPO_URL" ] || fail "unexpected origin: $remote"
+
+if [ -n "$("${GIT[@]}" status --porcelain --untracked-files=all)" ]; then
+  fail 'deploy source clone is dirty; refusing to overwrite unknown work'
+fi
+
+log "fetching origin/$BRANCH"
+"${GIT[@]}" fetch --prune origin "$BRANCH"
+
+remote_sha="$("${GIT[@]}" rev-parse "origin/$BRANCH")"
+[ "$requested_sha" = "$remote_sha" ] || fail "requested SHA is stale; current $BRANCH is $remote_sha"
+
+"${GIT[@]}" cat-file -e "$requested_sha^{commit}" 2>/dev/null || fail 'requested commit is unavailable'
+"${GIT[@]}" merge-base --is-ancestor "$requested_sha" "origin/$BRANCH" || fail 'requested commit is outside kevin/missions history'
+
+log 'verifying successful Terrain de jeu CI for the requested SHA'
+TARGET_SHA="$requested_sha" python3 - <<'PY'
+import json
+import os
+import sys
+import urllib.request
+
+sha = os.environ["TARGET_SHA"]
+url = (
+    "https://api.github.com/repos/giusmili/cours-python/actions/runs"
+    f"?head_sha={sha}&status=completed&per_page=20"
+)
+request = urllib.request.Request(
+    url,
+    headers={
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "playground-dev-deploy",
+    },
+)
+try:
+    with urllib.request.urlopen(request, timeout=20) as response:
+        payload = json.load(response)
+except Exception as exc:
+    print(f"cannot verify GitHub Actions status: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+ok = any(
+    run.get("name") == "Terrain de jeu CI"
+    and run.get("conclusion") == "success"
+    and run.get("event") == "push"
+    and run.get("head_sha") == sha
+    and run.get("head_branch") == "kevin/missions"
+    for run in payload.get("workflow_runs", [])
+)
+if not ok:
+    print("no successful Terrain de jeu CI push run found for this SHA", file=sys.stderr)
+    raise SystemExit(1)
+PY
+
+current="$(cat "$STATE_FILE" 2>/dev/null || true)"
+if [ "$current" = "$requested_sha" ]; then
+  log "already deployed: $requested_sha"
+  exit 0
+fi
+
+if [ -n "$current" ]; then
+  "${GIT[@]}" cat-file -e "$current^{commit}" 2>/dev/null || fail "deployed state refers to unavailable commit: $current"
+  "${GIT[@]}" merge-base --is-ancestor "$current" "$requested_sha" || fail 'rollback/non-fast-forward deployment refused'
+fi
+
+log "checking out candidate $requested_sha"
+"${GIT[@]}" reset --hard "$requested_sha" >/dev/null
+
+cd "$SOURCE_DIR/terrain-de-jeu"
+short_sha="${requested_sha:0:12}"
+previous_tag=''
+if [ -n "$current" ]; then previous_tag="${current:0:12}"; fi
+
+export PLAYGROUND_ENV_FILE="$ENV_FILE"
+export PLAYGROUND_IMAGE_TAG="$short_sha"
+compose=(docker compose -p playground-dev -f "$COMPOSE_FILE")
+
+"${compose[@]}" config >/dev/null
+log "building image playground-dev:$short_sha"
+"${compose[@]}" build playground
+
+rollback() {
+  if [ -z "$previous_tag" ]; then return; fi
+  if ! docker image inspect "playground-dev:$previous_tag" >/dev/null 2>&1; then
+    log "rollback image playground-dev:$previous_tag unavailable"
+    return
+  fi
+  log "rolling back to playground-dev:$previous_tag"
+  PLAYGROUND_IMAGE_TAG="$previous_tag" "${compose[@]}" up -d --no-build playground || true
+}
+
+log 'starting candidate container'
+if ! "${compose[@]}" up -d --no-build playground; then
+  rollback
+  fail 'docker compose up failed'
+fi
+
+healthy=''
+for _ in $(seq 1 60); do
+  healthy="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' playground-dev 2>/dev/null || true)"
+  if [ "$healthy" = 'healthy' ] || [ "$healthy" = 'unhealthy' ]; then break; fi
+  sleep 2
+done
+
+if [ "$healthy" != 'healthy' ]; then
+  "${compose[@]}" logs --no-color --tail=120 playground || true
+  rollback
+  fail "container health is $healthy"
+fi
+
+log 'checking public HTTPS health through Traefik'
+https_ok=''
+for _ in $(seq 1 30); do
+  if curl --fail --silent --show-error --max-time 10 "$PUBLIC_HEALTH" >/dev/null 2>&1; then
+    https_ok='yes'
+    break
+  fi
+  sleep 2
+done
+
+if [ "$https_ok" != 'yes' ]; then
+  rollback
+  fail 'public HTTPS healthcheck failed'
+fi
+
+printf '%s\n' "$requested_sha" > "$STATE_FILE"
+chmod 0644 "$STATE_FILE"
+
+log "deployed $requested_sha successfully"
+"${compose[@]}" ps
