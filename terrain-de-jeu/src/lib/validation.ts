@@ -77,6 +77,14 @@ export function validateWebMission(
       if (!regex.test(css)) {
         messages.push(localize(rule.message, locale));
       }
+      continue;
+    }
+
+    if (rule.kind === "codePattern") {
+      const regex = new RegExp(rule.pattern, "i");
+      if (!regex.test(code)) {
+        messages.push(localize(rule.message, locale));
+      }
     }
   }
 
