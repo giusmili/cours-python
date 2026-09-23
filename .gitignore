@@ -1,2 +1,11 @@
 .dist/
 *.pdf
+
+# Terrain de jeu
+terrain-de-jeu/node_modules/
+terrain-de-jeu/.next/
+terrain-de-jeu/out/
+terrain-de-jeu/public/pyodide/
+terrain-de-jeu/.env
+terrain-de-jeu/.env.*
+!terrain-de-jeu/.env.preview.example
