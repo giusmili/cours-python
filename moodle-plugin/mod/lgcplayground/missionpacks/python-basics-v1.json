@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "python-basics-v1",
+  "track": "python",
+  "missions": [
+    {
+      "id": "python-00-terminal",
+      "order": 0,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Réveiller le terminal",
+        "en": "Wake the terminal"
+      },
+      "scenario": {
+        "fr": "Le terminal de secours est muet. Le poste de contrôle attend son signal de vie.",
+        "en": "The backup terminal is silent. Control is waiting for its heartbeat."
+      },
+      "objective": {
+        "fr": "Fais afficher exactement SYSTEM ONLINE.",
+        "en": "Print exactly SYSTEM ONLINE."
+      },
+      "starter": "# Mission 0\n# Fais afficher exactement : SYSTEM ONLINE\n\n",
+      "hints": [
+        {
+          "fr": "La fonction print() écrit du texte dans la sortie standard.",
+          "en": "The print() function writes text to standard output."
+        },
+        {
+          "fr": "Le texte doit être placé entre guillemets : print(\"...\").",
+          "en": "Put the text between quotes: print(\"...\")."
+        }
+      ],
+      "debrief": {
+        "fr": "Tu viens d'utiliser print(), une chaîne de caractères et la boucle essentielle modifier → exécuter → lire la sortie.",
+        "en": "You just used print(), a string, and the essential edit → run → read-output loop."
+      },
+      "bonus": {
+        "fr": "Ajoute une seconde ligne qui affiche READY après SYSTEM ONLINE.",
+        "en": "Add a second line that prints READY after SYSTEM ONLINE."
+      },
+      "concepts": [
+        {
+          "fr": "print()",
+          "en": "print()"
+        },
+        {
+          "fr": "chaîne",
+          "en": "string"
+        },
+        {
+          "fr": "exécution",
+          "en": "execution"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Introduction",
+          "en": "Gius sheet — Introduction"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/01-introduction/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "SYSTEM ONLINE"
+      }
+    }
+  ]
+}
