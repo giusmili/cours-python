@@ -24,11 +24,20 @@ function hardenWorkerCapabilities() {
   self.postMessage = denyCapability("Direct worker messaging");
   self.close = denyCapability("Worker shutdown");
 
-  if ("WebSocket" in self) {
-    self.WebSocket = denyCapability("WebSocket access");
-  }
-  if ("EventSource" in self) {
-    self.EventSource = denyCapability("EventSource access");
+  const blockedGlobals = [
+    ["WebSocket", "WebSocket access"],
+    ["EventSource", "EventSource access"],
+    ["XMLHttpRequest", "XMLHttpRequest access"],
+    ["WebTransport", "WebTransport access"],
+    ["Worker", "Nested worker creation"],
+    ["SharedWorker", "Shared worker creation"],
+    ["BroadcastChannel", "BroadcastChannel access"],
+  ];
+
+  for (const [globalName, label] of blockedGlobals) {
+    if (globalName in self) {
+      self[globalName] = denyCapability(label);
+    }
   }
 }
 
