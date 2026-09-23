@@ -92,7 +92,9 @@ La preview autonome reste protégée par Basic Auth et sert exclusivement `kevin
 Avant intégration :
 - `php -l` sur tous les fichiers PHP ;
 - validation XML de `db/install.xml` ;
-- build Moodle ESM/React dès qu'un Moodle LOCAL est disponible ;
-- installation/upgrade LOCAL avant STAGING.
+- build Moodle ESM/React dans Moodle LOCAL 5.2 ;
+- installation/upgrade LOCAL avant STAGING ;
+- pour toute modification de progression/completion : test avec un utilisateur élève nommé, persistance après nouveau contexte navigateur et vérification de `course_modules_completion` ;
+- ne jamais considérer automatiquement un pass validé côté navigateur comme preuve forte Roads : documenter le niveau de preuve.
 
 Toujours indiquer les tests réellement exécutés et les limites.
