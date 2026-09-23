@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   localize,
   missionsForTrack,
@@ -12,23 +12,13 @@ import {
   validatePythonMission,
   validateWebMission,
 } from "../lib/validation";
+import {
+  resetPythonRuntime,
+  runPythonInSandbox,
+} from "../lib/pythonRuntime";
 
 type Status = "idle" | "running" | "success" | "error";
 
-type PyodideLike = {
-  runPythonAsync(code: string): Promise<unknown>;
-  setStdout(config: { batched: (text: string) => void }): void;
-  setStderr(config: { batched: (text: string) => void }): void;
-};
-
-declare global {
-  interface Window {
-    loadPyodide?: (config: { indexURL: string }) => Promise<PyodideLike>;
-  }
-}
-
-const PYODIDE_VERSION = "314.0.7";
-const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 const PROGRESS_KEY = "playground-progress-v1";
 const DRAFTS_KEY = "playground-drafts-v1";
 const LOCALE_KEY = "playground-locale";
@@ -69,7 +59,7 @@ const ui = {
     allDoneText: "Tu as validé toutes les missions actuellement disponibles sur ce terrain.",
     feedback: "À corriger",
     pyodide:
-      "Python s’exécute dans ton navigateur via Pyodide : ton code n’est pas envoyé au serveur.",
+      "Python s’exécute dans un worker isolé du navigateur : aucun code n’est envoyé au serveur, l’accès réseau est coupé et une boucle infinie est interrompue.",
     saved: "Brouillon sauvegardé localement",
     resetConfirm: "Le code de départ de cette mission a été restauré.",
   },
@@ -107,52 +97,11 @@ const ui = {
     allDoneText: "You completed every mission currently available on this track.",
     feedback: "Needs work",
     pyodide:
-      "Python runs in your browser through Pyodide: your code is not sent to the server.",
+      "Python runs in an isolated browser worker: no code is sent to the server, network access is disabled and runaway code is interrupted.",
     saved: "Draft saved locally",
     resetConfirm: "The mission starter code has been restored.",
   },
 } as const;
-
-function loadPyodideRuntime(): Promise<PyodideLike> {
-  if (window.loadPyodide) {
-    return window.loadPyodide({ indexURL: PYODIDE_BASE });
-  }
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-pyodide="true"]',
-    );
-
-    if (existing) {
-      existing.addEventListener("load", async () => {
-        if (!window.loadPyodide) {
-          reject(new Error("Pyodide unavailable."));
-          return;
-        }
-        resolve(await window.loadPyodide({ indexURL: PYODIDE_BASE }));
-      });
-      existing.addEventListener("error", () =>
-        reject(new Error("Unable to load Pyodide.")),
-      );
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `${PYODIDE_BASE}pyodide.js`;
-    script.async = true;
-    script.dataset.pyodide = "true";
-    script.onload = async () => {
-      try {
-        if (!window.loadPyodide) throw new Error("Pyodide unavailable.");
-        resolve(await window.loadPyodide({ indexURL: PYODIDE_BASE }));
-      } catch (error) {
-        reject(error);
-      }
-    };
-    script.onerror = () => reject(new Error("Unable to load Pyodide."));
-    document.head.appendChild(script);
-  });
-}
 
 function firstAvailableMission(
   track: Track,
@@ -179,7 +128,6 @@ export function Playground() {
   const [hintIndex, setHintIndex] = useState(-1);
   const [hydrated, setHydrated] = useState(false);
   const [notice, setNotice] = useState("");
-  const pyodideRef = useRef<Promise<PyodideLike> | null>(null);
 
   const t = ui[locale];
   const trackMissions = useMemo(() => missionsForTrack(track), [track]);
@@ -194,6 +142,10 @@ export function Playground() {
   const progress = Math.round((completedCount / trackMissions.length) * 100);
 
   const nextMission = trackMissions[currentMission.order + 1] ?? null;
+
+  useEffect(() => {
+    return () => resetPythonRuntime();
+  }, []);
 
   useEffect(() => {
     try {
@@ -304,18 +256,25 @@ export function Playground() {
     setNotice("");
 
     try {
-      pyodideRef.current ??= loadPyodideRuntime();
-      const pyodide = await pyodideRef.current;
-      const stdout: string[] = [];
-      const stderr: string[] = [];
+      const execution = await runPythonInSandbox(currentCode);
+      const nextOutput = execution.output || execution.error || "";
 
-      pyodide.setStdout({ batched: (text) => stdout.push(text) });
-      pyodide.setStderr({ batched: (text) => stderr.push(text) });
-
-      await pyodide.runPythonAsync(currentCode);
-
-      const nextOutput = [...stdout, ...stderr].join("\n").trim();
       setOutput(nextOutput);
+
+      if (!execution.ok) {
+        const message = execution.timedOut
+          ? locale === "fr"
+            ? "Exécution interrompue après 5 secondes. Vérifie notamment les boucles qui ne se terminent jamais."
+            : "Execution stopped after 5 seconds. Check especially for loops that never finish."
+          : locale === "fr"
+            ? "Le programme doit d’abord s’exécuter sans erreur."
+            : "The program must run without errors first.";
+
+        setFeedback([message]);
+        setStatus("error");
+        return { ok: false, output: nextOutput };
+      }
+
       setStatus("idle");
       return { ok: true, output: nextOutput };
     } catch (error) {
@@ -323,10 +282,11 @@ export function Playground() {
       setOutput(message);
       setFeedback([
         locale === "fr"
-          ? "Le programme doit d’abord s’exécuter sans erreur."
-          : "The program must run without errors first.",
+          ? "Le runtime Python n’a pas pu démarrer. Réessaie dans quelques secondes."
+          : "The Python runtime could not start. Try again in a few seconds.",
       ]);
       setStatus("error");
+      resetPythonRuntime();
       return { ok: false, output: message };
     }
   }
