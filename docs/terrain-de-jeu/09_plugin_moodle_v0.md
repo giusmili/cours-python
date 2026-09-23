@@ -239,3 +239,34 @@ La persistance et la completion du pack élargi sont testées côté Moodle sur 
 
 La prochaine valeur avant une démo plus large est surtout UX/polish et contenu, pas une reconstruction d'architecture.
 
+## Checkpoint — polish de démo 0.6.0-alpha
+
+La surface élève a reçu une passe dédiée à la démonstration, sans changement d'architecture :
+
+- barre d'état du laboratoire ;
+- progression visuelle du parcours ;
+- verrouillage séquentiel des missions ;
+- workflow explicite **Coder → Exécuter → Valider** ;
+- raccourci `Ctrl/⌘ + Entrée` pour exécuter ;
+- console et états succès/erreur plus lisibles ;
+- vocabulaire interne réduit dans l'interface élève ;
+- responsive renforcé.
+
+### Validation réelle
+
+Sur Moodle LOCAL 5.2.3+ :
+- `php -l` : vert ;
+- build React Moodle : 5/5 composants ;
+- upgrade plugin `0.6.0-alpha` : vert ;
+- PHPUnit : **10 tests / 54 assertions** ;
+- E2E Chromium de démo : P0 → P4, **5/5** ;
+- missions verrouillées au départ : **4/5**, puis déverrouillage séquentiel ;
+- progression visuelle : **0 → 5** ;
+- `Ctrl+Enter` exécuté réellement sur P0 ;
+- état final « parcours validé » : présent ;
+- erreurs console/page : **0**.
+
+Le déroulé humain recommandé est documenté dans `10_demo_interne.md`.
+
+À ce stade, le prochain gain pour une démo ne vient plus d'une refonte technique. Une démonstration interne est présentable ; avant usage réel en classe, il reste notamment le contenu, backup/restore, validation d'environnement et les outils enseignant éventuels.
+
