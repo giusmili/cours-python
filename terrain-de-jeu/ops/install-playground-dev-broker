@@ -62,13 +62,17 @@ PY
     printf 'PREVIEW_PASSWORD=%s\n' "$password"
   } > "$PREVIEW_ENV"
   chown "$DEPLOY_USER:$DEPLOY_USER" "$PREVIEW_ENV"
-  chmod 0600 "$PREVIEW_ENV"
   unset password
 fi
 
+chown "$DEPLOY_USER:$DEPLOY_USER" "$PREVIEW_ENV"
+chmod 0640 "$PREVIEW_ENV"
+
 systemd-tmpfiles --create /etc/tmpfiles.d/playground-dev.conf
 systemctl daemon-reload
-systemctl enable --now playground-dev-deploy.path >/dev/null
+systemctl reset-failed playground-dev-deploy.service playground-dev-deploy.path 2>/dev/null || true
+systemctl enable playground-dev-deploy.path >/dev/null
+systemctl restart playground-dev-deploy.path
 
 echo 'playground-dev broker installed.'
 echo 'Preview credentials are stored locally at:'
