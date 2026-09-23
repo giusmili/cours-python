@@ -378,10 +378,14 @@ export function Playground() {
 
   const iframeDoc = useMemo(() => {
     if (currentMission.track !== "web") return "";
-    return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-      :root{color-scheme:dark}
-      body{margin:0;min-height:100vh;padding:2rem;font-family:system-ui,sans-serif;background:#07111f;color:#edf6ff}
-    </style></head><body>${currentCode}</body></html>`;
+    return `<!doctype html><html><head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src data:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+      <style>
+        :root{color-scheme:dark}
+        body{margin:0;min-height:100vh;padding:2rem;font-family:system-ui,sans-serif;background:#07111f;color:#edf6ff}
+      </style>
+    </head><body>${currentCode}</body></html>`;
   }, [currentMission.track, currentCode]);
 
   const allComplete = completedCount === trackMissions.length;
@@ -609,7 +613,7 @@ export function Playground() {
               ) : (
                 <iframe
                   title="Web preview"
-                  sandbox=""
+                  sandbox="allow-scripts"
                   srcDoc={iframeDoc}
                 />
               )}
