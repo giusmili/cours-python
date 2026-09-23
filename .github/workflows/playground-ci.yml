@@ -1,0 +1,47 @@
+name: Terrain de jeu CI
+
+on:
+  push:
+    branches:
+      - kevin/missions
+      - "dev/**"
+    paths:
+      - "terrain-de-jeu/**"
+      - ".github/workflows/playground-ci.yml"
+  pull_request:
+    paths:
+      - "terrain-de-jeu/**"
+      - ".github/workflows/playground-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terrain-de-jeu
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: terrain-de-jeu/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate

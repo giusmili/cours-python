@@ -1,0 +1,38 @@
+services:
+  playground:
+    container_name: playground-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.preview
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_network"
+      - "traefik.http.routers.playground-dev.rule=Host(`playground-dev.lagrandeclasse.fr`)"
+      - "traefik.http.routers.playground-dev.entrypoints=websecure"
+      - "traefik.http.routers.playground-dev.tls=true"
+      - "traefik.http.routers.playground-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.playground-dev.loadbalancer.server.port=3000"
+    networks:
+      - traefik_network
+
+networks:
+  traefik_network:
+    external: true
+    name: traefik_network
