@@ -20,7 +20,13 @@ final class mission_repository_test extends advanced_testcase {
         $this->assertSame('python-basics-v1', $pack['id']);
         $this->assertSame('python', $pack['track']);
         $this->assertSame(
-            ['python-00-terminal', 'python-01-variables', 'python-02-types'],
+            [
+                'python-00-terminal',
+                'python-01-variables',
+                'python-02-types',
+                'python-03-conditions',
+                'python-04-for-loop',
+            ],
             mission_repository::ids_for_track($pack, 'python'),
         );
 
