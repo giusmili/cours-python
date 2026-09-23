@@ -8,13 +8,15 @@ on:
   pull_request:
     paths:
       - "terrain-de-jeu/**"
+      - "moodle-plugin/mod/lgcplayground/**"
+      - "docs/terrain-de-jeu/**"
       - ".github/workflows/playground-ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  verify:
+  verify-standalone:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,3 +50,28 @@ jobs:
 
       - name: Build preview image
         run: docker build -f ops/Dockerfile.preview -t playground-dev:ci .
+
+  verify-moodle-plugin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP syntax
+        run: |
+          find moodle-plugin/mod/lgcplayground -type f -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: XML syntax
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse('moodle-plugin/mod/lgcplayground/db/install.xml')
+          print('install.xml well-formed')
+          PY
+
+      - name: Moodle React build artifact present
+        run: |
+          test -s moodle-plugin/mod/lgcplayground/js/esm/src/view.tsx
+          test -s moodle-plugin/mod/lgcplayground/js/esm/build/view.js
