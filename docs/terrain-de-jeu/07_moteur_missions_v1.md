@@ -57,6 +57,13 @@ La progression locale n'est pas une solution d'identité ou d'évaluation instit
 ### Python
 Le code est réellement exécuté dans le navigateur via Pyodide.
 
+Le runtime v1.1 :
+- auto-héberge les assets cœur de Pyodide ;
+- exécute Python dans un Web Worker ES module dédié ;
+- crée un namespace Python neuf à chaque tentative ;
+- coupe `fetch`, WebSocket, EventSource et le canal `postMessage` exposé au bridge `js` après l'initialisation ;
+- termine le worker après 5 secondes si le code ne rend pas la main, puis recrée un runtime propre à la tentative suivante.
+
 Le validateur peut vérifier :
 - sortie exacte ;
 - présence de constructions minimales dans le code.
