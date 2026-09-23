@@ -1,6 +1,8 @@
 <?php
 require_once('../../config.php');
 
+use mod_lgcplayground\local\mission_repository;
+
 $id = required_param('id', PARAM_INT);
 
 [$course, $cm] = get_course_and_cm_from_cmid($id, 'lgcplayground');
@@ -16,11 +18,18 @@ $PAGE->set_title(format_string($activity->name));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($context);
 
+$pack = mission_repository::load((string)$activity->missionpack);
+$mission = mission_repository::first_for_track($pack, (string)$activity->track);
+$currentlanguage = current_language();
+$locale = str_starts_with($currentlanguage, 'fr') ? 'fr' : 'en';
+
 $props = [
     'activityName' => format_string($activity->name),
     'track' => (string)$activity->track,
     'missionPack' => (string)$activity->missionpack,
     'courseModuleId' => (int)$cm->id,
+    'locale' => $locale,
+    'mission' => $mission,
 ];
 
 $templatecontext = [
