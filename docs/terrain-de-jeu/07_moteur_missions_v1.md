@@ -44,11 +44,13 @@ La progression locale n'est pas une solution d'identité ou d'évaluation instit
 - P0 — Réveiller le terminal : `print`, chaîne, cycle exécuter/lire.
 - P1 — Réparer le profil : variables, types, f-string.
 - P2 — Contrôle d'accès : booléens, comparaisons, `if / else`.
+- P3 — Scanner les événements : boucle `for`, liste, compteur.
 
 ### Web
 - W0 — Faire apparaître le signal : structure HTML / `h1`.
 - W1 — Rendre l'alerte lisible : classe CSS, fond, padding, coins arrondis.
 - W2 — Organiser le poste de contrôle : Flexbox + gap.
+- W3 — Le bouton doit agir : événement `click`, DOM, `textContent`.
 
 ## Validation
 
@@ -62,14 +64,21 @@ Le validateur peut vérifier :
 À mesure que les missions deviennent plus complexes, préférer de vrais tests Python cachés plutôt qu'une multiplication de regex.
 
 ### Web
-Le code HTML/CSS est rendu dans une iframe sandboxée.
+Le code HTML/CSS/JavaScript est rendu dans une iframe sandboxée **sans `allow-same-origin`**.
+
+Pour les premières missions JavaScript :
+- seuls les scripts inline sont autorisés ;
+- `connect-src` est bloqué ;
+- frames, objets, formulaires et ressources réseau externes sont bloqués par CSP ;
+- le code reste dans une origine opaque et ne peut pas lire le parent.
 
 Le validateur v1 sait vérifier :
 - présence d'un sélecteur ;
 - texte d'un élément ;
-- règles CSS attendues.
+- règles CSS attendues ;
+- constructions minimales JavaScript dans le code.
 
-Pour JavaScript, ne pas simplement activer du script arbitraire dans l'iframe existante. Concevoir d'abord un harness sandboxé avec politique réseau restrictive et canal de résultat contrôlé.
+La mission W3 laisse surtout l'élève constater le comportement réel dans l'aperçu. Pour des validations JavaScript plus avancées, ajouter plus tard un harness de test contrôlé plutôt que d'assouplir le sandbox.
 
 ## Bilingue
 
@@ -97,7 +106,8 @@ Les premières missions Web pointent vers MDN.
 1. tester la boucle pédagogique avec un humain ;
 2. renforcer la validation Python avec de vrais tests cachés ;
 3. concevoir proprement le runtime JavaScript sandboxé ;
-4. ajouter P3 boucles et W3 interaction JavaScript ;
-5. seulement ensuite augmenter fortement le catalogue.
+4. ajouter P4 listes/chaînes et W4 responsive ou mini-formulaire ;
+5. renforcer progressivement les tests cachés ;
+6. seulement ensuite augmenter fortement le catalogue.
 
 Le nombre de missions reste secondaire tant que la boucle `mission → essai → feedback → validation → débrief` n'est pas excellente.
