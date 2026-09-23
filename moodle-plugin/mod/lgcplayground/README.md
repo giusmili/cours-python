@@ -144,3 +144,24 @@ Version `0.6.0-alpha` adds presentation-focused polish without changing the Mood
 - less internal/dev terminology in the learner surface.
 
 The intended demo story is documented in `docs/terrain-de-jeu/10_demo_interne.md`.
+
+
+## STAGING package
+
+Every CI push now builds a self-contained Moodle plugin artifact from the exact commit:
+
+`lgcplayground-staging-<SHA40>`
+
+It contains the installable `lgcplayground-<SHA12>.zip`, a file-level manifest and `SHA256SUMS`. The archive includes the pinned Pyodide runtime assets, so STAGING does not need Node/npm.
+
+Build locally from a clean checkout:
+
+```bash
+npm ci --prefix terrain-de-jeu
+node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+python3 moodle-plugin/mod/lgcplayground/tools/package-plugin.py \
+  --output-dir dist/playground-staging \
+  --commit "$(git rev-parse HEAD)"
+```
+
+Deployment and smoke-test procedure: `docs/terrain-de-jeu/11_deploiement_staging.md`.
