@@ -1,6 +1,7 @@
-import { loadPyodide } from "/pyodide/pyodide.mjs";
+const PYODIDE_MODULE_URL = "__PYODIDE_MODULE_URL__";
+const PYODIDE_BASE = "__PYODIDE_BASE_URL__";
 
-const PYODIDE_BASE = "/pyodide/";
+const { loadPyodide } = await import(PYODIDE_MODULE_URL);
 const emit = self.postMessage.bind(self);
 
 let pyodidePromise = null;
@@ -17,9 +18,9 @@ function denyCapability(name) {
 }
 
 function hardenWorkerCapabilities() {
-  // Student Python can import the `js` bridge. Keep that bridge available for
-  // harmless values, but remove capabilities that can escape the exercise
-  // boundary or forge our worker protocol.
+  // Defense in depth. The primary boundary is the opaque-origin sandboxed
+  // iframe that owns this worker. These blocks also prevent beginner code from
+  // accidentally reaching the network or forging the runtime protocol.
   self.fetch = denyCapability("Network access");
   self.postMessage = denyCapability("Direct worker messaging");
   self.close = denyCapability("Worker shutdown");
@@ -52,6 +53,13 @@ async function getRuntime() {
   return pyodidePromise;
 }
 
+function formatOutput(stdout, stderr) {
+  return [stdout.join("\n").trim(), stderr.join("\n").trim()]
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 async function runCode(id, code) {
   const pyodide = await getRuntime();
   const stdout = [];
@@ -80,16 +88,14 @@ exec(compile(__PLAYGROUND_CODE__, "<mission>", "exec"), namespace, namespace)
       type: "result",
       id,
       ok: true,
-      stdout: stdout.join("\n").trim(),
-      stderr: stderr.join("\n").trim(),
+      output: formatOutput(stdout, stderr),
     });
   } catch (error) {
     emit({
       type: "result",
       id,
       ok: false,
-      stdout: stdout.join("\n").trim(),
-      stderr: stderr.join("\n").trim(),
+      output: formatOutput(stdout, stderr),
       error: formatError(error),
     });
   } finally {
@@ -114,20 +120,17 @@ self.addEventListener("message", (event) => {
       type: "result",
       id: message.id,
       ok: false,
-      stdout: "",
-      stderr: "",
+      output: "",
       error: formatError(error),
     });
   });
 });
 
 getRuntime()
-  .then(() => {
-    emit({ type: "ready" });
-  })
-  .catch((error) => {
+  .then(() => emit({ type: "ready" }))
+  .catch((error) =>
     emit({
       type: "fatal",
       error: formatError(error),
-    });
-  });
+    }),
+  );

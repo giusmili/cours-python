@@ -1,28 +1,36 @@
-const LOAD_TIMEOUT_MS = 45_000;
+const PROTOCOL = "playground-python-v1";
+const LOAD_TIMEOUT_MS = 50_000;
 const EXECUTION_TIMEOUT_MS = 5_000;
+const MAX_CODE_LENGTH = 100_000;
 
-type WorkerReadyMessage = {
+type SandboxReadyMessage = {
+  protocol: typeof PROTOCOL;
+  token: string;
   type: "ready";
 };
 
-type WorkerFatalMessage = {
+type SandboxFatalMessage = {
+  protocol: typeof PROTOCOL;
+  token: string;
   type: "fatal";
   error: string;
 };
 
-type WorkerResultMessage = {
+type SandboxResultMessage = {
+  protocol: typeof PROTOCOL;
+  token: string;
   type: "result";
   id: string;
   ok: boolean;
-  stdout: string;
-  stderr: string;
+  output: string;
   error?: string;
+  timedOut?: boolean;
 };
 
-type WorkerMessage =
-  | WorkerReadyMessage
-  | WorkerFatalMessage
-  | WorkerResultMessage;
+type SandboxMessage =
+  | SandboxReadyMessage
+  | SandboxFatalMessage
+  | SandboxResultMessage;
 
 export type PythonExecution = {
   ok: boolean;
@@ -31,64 +39,117 @@ export type PythonExecution = {
   timedOut?: boolean;
 };
 
-let worker: Worker | null = null;
-let readyPromise: Promise<Worker> | null = null;
+type PendingRun = {
+  resolve: (value: PythonExecution) => void;
+  timer: number;
+};
+
+let frame: HTMLIFrameElement | null = null;
+let token = "";
+let readyPromise: Promise<HTMLIFrameElement> | null = null;
+let readyResolve: ((value: HTMLIFrameElement) => void) | null = null;
+let readyReject: ((reason: Error) => void) | null = null;
+let readyTimer: number | null = null;
 let sequence = 0;
+const pending = new Map<string, PendingRun>();
 
-function destroyWorker() {
-  worker?.terminate();
-  worker = null;
+function failPending(error: string) {
+  for (const [id, run] of pending) {
+    window.clearTimeout(run.timer);
+    run.resolve({ ok: false, output: "", error });
+    pending.delete(id);
+  }
+}
+
+function removeMessageListener() {
+  window.removeEventListener("message", onSandboxMessage);
+}
+
+function destroySandbox() {
+  failPending("Python sandbox was reset.");
+
+  if (readyTimer !== null) {
+    window.clearTimeout(readyTimer);
+    readyTimer = null;
+  }
+
+  frame?.remove();
+  frame = null;
+  token = "";
   readyPromise = null;
+  readyResolve = null;
+  readyReject = null;
+  removeMessageListener();
 }
 
-function makeWorker() {
-  const nextWorker = new Worker("/pyodide-worker.mjs", {
-    name: "playground-python",
-    type: "module",
+function onSandboxMessage(event: MessageEvent<SandboxMessage>) {
+  if (!frame || event.source !== frame.contentWindow) return;
+
+  const message = event.data;
+  if (
+    !message ||
+    message.protocol !== PROTOCOL ||
+    message.token !== token
+  ) {
+    return;
+  }
+
+  if (message.type === "ready") {
+    if (readyTimer !== null) {
+      window.clearTimeout(readyTimer);
+      readyTimer = null;
+    }
+    if (readyResolve) {
+      readyResolve(frame);
+      readyResolve = null;
+      readyReject = null;
+    }
+    return;
+  }
+
+  if (message.type === "fatal") {
+    const error = new Error(message.error || "Python sandbox failed to load.");
+    readyReject?.(error);
+    destroySandbox();
+    return;
+  }
+
+  if (message.type !== "result") return;
+
+  const run = pending.get(message.id);
+  if (!run) return;
+
+  pending.delete(message.id);
+  window.clearTimeout(run.timer);
+  run.resolve({
+    ok: message.ok,
+    output: message.output || "",
+    error: message.error,
+    timedOut: message.timedOut,
   });
-  worker = nextWorker;
-  return nextWorker;
 }
 
-function ensureWorker(): Promise<Worker> {
-  if (worker && readyPromise) return readyPromise;
+function ensureSandbox(): Promise<HTMLIFrameElement> {
+  if (frame && readyPromise) return readyPromise;
 
-  const nextWorker = makeWorker();
+  token = window.crypto.randomUUID();
+  frame = document.createElement("iframe");
+  frame.title = "Python execution sandbox";
+  frame.hidden = true;
+  frame.setAttribute("aria-hidden", "true");
+  frame.setAttribute("sandbox", "allow-scripts");
+  frame.src = `/python-sandbox.html#${encodeURIComponent(token)}`;
+  document.body.appendChild(frame);
 
-  readyPromise = new Promise<Worker>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      destroyWorker();
-      reject(new Error("Python runtime loading timed out."));
+  window.addEventListener("message", onSandboxMessage);
+
+  readyPromise = new Promise<HTMLIFrameElement>((resolve, reject) => {
+    readyResolve = resolve;
+    readyReject = reject;
+    readyTimer = window.setTimeout(() => {
+      reject(new Error("Python sandbox loading timed out."));
+      destroySandbox();
     }, LOAD_TIMEOUT_MS);
-
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      nextWorker.removeEventListener("message", onMessage);
-      nextWorker.removeEventListener("error", onError);
-    };
-
-    const onError = () => {
-      cleanup();
-      destroyWorker();
-      reject(new Error("Python worker failed to load."));
-    };
-
-    const onMessage = (event: MessageEvent<WorkerMessage>) => {
-      if (event.data?.type === "ready") {
-        cleanup();
-        resolve(nextWorker);
-        return;
-      }
-
-      if (event.data?.type === "fatal") {
-        cleanup();
-        destroyWorker();
-        reject(new Error(event.data.error || "Python runtime failed to load."));
-      }
-    };
-
-    nextWorker.addEventListener("message", onMessage);
-    nextWorker.addEventListener("error", onError);
   });
 
   return readyPromise;
@@ -98,62 +159,48 @@ export async function runPythonInSandbox(
   code: string,
   timeoutMs = EXECUTION_TIMEOUT_MS,
 ): Promise<PythonExecution> {
-  const activeWorker = await ensureWorker();
+  if (code.length > MAX_CODE_LENGTH) {
+    return {
+      ok: false,
+      output: "",
+      error: "Python source is too large for this exercise.",
+    };
+  }
+
+  const sandbox = await ensureSandbox();
   const id = `run-${Date.now()}-${sequence++}`;
 
   return new Promise<PythonExecution>((resolve) => {
-    let settled = false;
-
-    const finish = (value: PythonExecution) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      activeWorker.removeEventListener("message", onMessage);
-      activeWorker.removeEventListener("error", onError);
-      resolve(value);
-    };
-
-    const onError = () => {
-      destroyWorker();
-      finish({
-        ok: false,
-        output: "",
-        error: "Python worker stopped unexpectedly.",
-      });
-    };
-
-    const onMessage = (event: MessageEvent<WorkerMessage>) => {
-      const message = event.data;
-      if (message?.type !== "result" || message.id !== id) return;
-
-      const output = [message.stdout, message.stderr]
-        .filter(Boolean)
-        .join("\n")
-        .trim();
-
-      finish({
-        ok: message.ok,
-        output,
-        error: message.error,
-      });
-    };
-
-    const timer = window.setTimeout(() => {
-      destroyWorker();
-      finish({
+    const failSafeTimer = window.setTimeout(() => {
+      pending.delete(id);
+      destroySandbox();
+      resolve({
         ok: false,
         output: "",
         error: "Execution timed out.",
         timedOut: true,
       });
-    }, timeoutMs);
+    }, timeoutMs + 2_500);
 
-    activeWorker.addEventListener("message", onMessage);
-    activeWorker.addEventListener("error", onError);
-    activeWorker.postMessage({ type: "run", id, code });
+    pending.set(id, {
+      resolve,
+      timer: failSafeTimer,
+    });
+
+    sandbox.contentWindow?.postMessage(
+      {
+        protocol: PROTOCOL,
+        token,
+        type: "run",
+        id,
+        code,
+        timeoutMs,
+      },
+      "*",
+    );
   });
 }
 
 export function resetPythonRuntime() {
-  destroyWorker();
+  destroySandbox();
 }

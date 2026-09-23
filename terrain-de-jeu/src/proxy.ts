@@ -11,8 +11,17 @@ function unauthorized() {
   });
 }
 
+function isPublicRuntimeAsset(pathname: string) {
+  return (
+    pathname === "/api/health" ||
+    pathname === "/python-sandbox.html" ||
+    pathname === "/pyodide-worker.mjs" ||
+    pathname.startsWith("/pyodide/")
+  );
+}
+
 export function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/api/health") {
+  if (isPublicRuntimeAsset(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

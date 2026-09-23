@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; connect-src http: https:; worker-src blob:; child-src blob:; object-src 'none'; frame-src 'none'; img-src 'none'; style-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Python sandbox</title>
+  </head>
+  <body>
+    <script type="module">
+      const PROTOCOL = "playground-python-v1";
+      const token = decodeURIComponent(location.hash.slice(1));
+      const runtimeOrigin = new URL(location.href).origin;
+      const workerSourceUrl = new URL("/pyodide-worker.mjs", runtimeOrigin);
+      const pyodideModuleUrl = new URL("/pyodide/pyodide.mjs", runtimeOrigin);
+      const pyodideBaseUrl = new URL("/pyodide/", runtimeOrigin);
+
+      let worker = null;
+      let workerUrl = null;
+      let workerReady = null;
+      let activeRun = null;
+
+      function send(message) {
+        parent.postMessage(
+          {
+            protocol: PROTOCOL,
+            token,
+            ...message,
+          },
+          "*",
+        );
+      }
+
+      function clearWorker() {
+        if (worker) {
+          worker.terminate();
+          worker = null;
+        }
+        if (workerUrl) {
+          URL.revokeObjectURL(workerUrl);
+          workerUrl = null;
+        }
+        workerReady = null;
+      }
+
+      async function createWorker() {
+        if (workerReady) return workerReady;
+
+        workerReady = (async () => {
+          const response = await fetch(workerSourceUrl, {
+            credentials: "omit",
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            throw new Error("Unable to load the Python worker.");
+          }
+
+          let source = await response.text();
+          source = source
+            .replaceAll(
+              "__PYODIDE_MODULE_URL__",
+              pyodideModuleUrl.href.replaceAll("\\", "\\\\").replaceAll('"', '\\"'),
+            )
+            .replaceAll(
+              "__PYODIDE_BASE_URL__",
+              pyodideBaseUrl.href.replaceAll("\\", "\\\\").replaceAll('"', '\\"'),
+            );
+
+          workerUrl = URL.createObjectURL(
+            new Blob([source], { type: "text/javascript" }),
+          );
+          worker = new Worker(workerUrl, { type: "module" });
+
+          await new Promise((resolve, reject) => {
+            const loadingTimer = setTimeout(() => {
+              reject(new Error("Python runtime loading timed out."));
+            }, 45_000);
+
+            const onMessage = (event) => {
+              const message = event.data;
+              if (message?.type === "ready") {
+                clearTimeout(loadingTimer);
+                worker.removeEventListener("message", onMessage);
+                worker.removeEventListener("error", onError);
+                resolve();
+              } else if (message?.type === "fatal") {
+                clearTimeout(loadingTimer);
+                worker.removeEventListener("message", onMessage);
+                worker.removeEventListener("error", onError);
+                reject(new Error(message.error || "Python runtime failed."));
+              }
+            };
+
+            const onError = () => {
+              clearTimeout(loadingTimer);
+              worker.removeEventListener("message", onMessage);
+              worker.removeEventListener("error", onError);
+              reject(new Error("Python worker failed."));
+            };
+
+            worker.addEventListener("message", onMessage);
+            worker.addEventListener("error", onError);
+          });
+
+          worker.addEventListener("message", onWorkerMessage);
+          worker.addEventListener("error", () => {
+            if (!activeRun) return;
+            const { id } = activeRun;
+            clearTimeout(activeRun.timer);
+            activeRun = null;
+            clearWorker();
+            send({
+              type: "result",
+              id,
+              ok: false,
+              output: "",
+              error: "Python worker stopped unexpectedly.",
+            });
+          });
+
+          return worker;
+        })().catch((error) => {
+          clearWorker();
+          throw error;
+        });
+
+        return workerReady;
+      }
+
+      function onWorkerMessage(event) {
+        const message = event.data;
+        if (
+          !activeRun ||
+          message?.type !== "result" ||
+          message.id !== activeRun.id
+        ) {
+          return;
+        }
+
+        clearTimeout(activeRun.timer);
+        activeRun = null;
+        send(message);
+      }
+
+      async function run(message) {
+        if (activeRun) {
+          send({
+            type: "result",
+            id: message.id,
+            ok: false,
+            output: "",
+            error: "Another Python execution is already running.",
+          });
+          return;
+        }
+
+        try {
+          const currentWorker = await createWorker();
+          const timeoutMs = Math.max(
+            500,
+            Math.min(Number(message.timeoutMs) || 5_000, 15_000),
+          );
+
+          const timer = setTimeout(() => {
+            const id = message.id;
+            activeRun = null;
+            clearWorker();
+            send({
+              type: "result",
+              id,
+              ok: false,
+              output: "",
+              error: "Execution timed out.",
+              timedOut: true,
+            });
+          }, timeoutMs);
+
+          activeRun = { id: message.id, timer };
+          currentWorker.postMessage({
+            type: "run",
+            id: message.id,
+            code: message.code,
+          });
+        } catch (error) {
+          send({
+            type: "result",
+            id: message.id,
+            ok: false,
+            output: "",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      addEventListener("message", (event) => {
+        if (event.source !== parent) return;
+
+        const message = event.data;
+        if (
+          !message ||
+          message.protocol !== PROTOCOL ||
+          message.token !== token ||
+          message.type !== "run" ||
+          typeof message.id !== "string" ||
+          typeof message.code !== "string"
+        ) {
+          return;
+        }
+
+        run(message);
+      });
+
+      createWorker()
+        .then(() => send({ type: "ready" }))
+        .catch((error) =>
+          send({
+            type: "fatal",
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+    </script>
+  </body>
+</html>
