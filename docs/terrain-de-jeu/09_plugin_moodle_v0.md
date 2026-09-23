@@ -208,25 +208,34 @@ Le prochain ajout de contenu doit rester progressif. Avant d'ajouter des dizaine
 - ajouter ensuite conditions puis boucles avec la même boucle exécuter → feedback → validation → débrief ;
 - garder séparée la notion de progression Moodle et celle de preuve forte éventuellement consommée par Roads.
 
-## Checkpoint interrompu proprement — P3/P4
+## Checkpoint — P3/P4 intégrables
 
-Branche de travail : `dev/python-conditions-loops`.
+Les missions suivantes ont été ajoutées au pack Python :
+- P3 `python-03-conditions` — `if / else`, comparaison, booléen ;
+- P4 `python-04-for-loop` — `for`, `range()`, répétition.
 
-État au moment de la pause :
-- P3 `python-03-conditions` ajoutée au pack ;
-- P4 `python-04-for-loop` ajoutée au pack ;
-- références alignées sur les chapitres `03-conditions` et `04-boucles` du `master` de Gius ;
-- tests completion/endpoint adaptés au nombre dynamique de missions ;
-- suite Moodle LOCAL verte : **10 tests / 54 assertions**.
+Les références restent alignées sur les chapitres `03-conditions` et `04-boucles` du `master` de Gius.
 
-La branche **n'est pas intégrée** à `kevin/missions`.
+### Validation
 
-Le dernier E2E Chromium a expiré en attendant le passage visuel de P2 vers P3. Aucun process de test ne tourne encore. Avant intégration :
-1. reprendre l'E2E P0 → P1 → P2 → P3 → P4 ;
-2. déterminer si le timeout vient uniquement de l'assertion de navigation/titre ou d'une vraie régression frontend ;
-3. vérifier le nouveau contexte navigateur avec 5/5 missions restaurées ;
-4. vérifier `completionstate=1` ;
-5. seulement ensuite fast-forward vers `kevin/missions` et supprimer la branche.
+- suite Moodle LOCAL : **10 tests / 54 assertions**, verte ;
+- E2E Chromium P0 → P1 → P2 → P3 → P4 : vert ;
+- 5/5 missions validées ;
+- état "parcours validé" affiché ;
+- aucune erreur console/page.
 
-Aucun travail VPS n'est requis pour cette reprise : GitHub + Linux/Moodle LOCAL suffisent.
+Le timeout observé lors de la première tentative n'était pas une régression produit : le test attendait un fragment de titre français alors que le compte invité utilisait l'anglais. L'assertion a été remplacée par l'index stable de la mission active, indépendant de la locale.
+
+La persistance et la completion du pack élargi sont testées côté Moodle sur l'ensemble dynamique des ids de missions. Le test navigateur P0–P4 en mode invité complète ce gate en vérifiant le flux UI réel.
+
+### État de démo
+
+À ce stade, le plugin n'est plus seulement une preuve d'architecture :
+- une activité Moodle réelle existe ;
+- cinq missions Python forment un petit parcours cohérent ;
+- l'exécution navigateur, les indices, la validation, les débriefs et la navigation fonctionnent ;
+- la progression et la completion Moodle sont persistantes ;
+- les tests automatisés couvrent le contrat principal.
+
+La prochaine valeur avant une démo plus large est surtout UX/polish et contenu, pas une reconstruction d'architecture.
 
