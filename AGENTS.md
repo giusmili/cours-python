@@ -38,6 +38,20 @@ Les assets `moodle-plugin/mod/lgcplayground/pyodide/` sont générés et ignoré
 `node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs`
 puis synchroniser le dossier du plugin avec `pyodide/`. Un worker qui échoue immédiatement après une copie Git peut simplement indiquer que ces assets ont été supprimés.
 
+### Déploiement Moodle STAGING
+Cible actuelle : `https://moodle-dev.kiwinokoto.com`.
+
+- STAGING est distinct de PROD ; **PROD n'est jamais un environnement de test**.
+- Déployer uniquement un artefact produit par une CI verte du SHA exact de `kevin/missions`.
+- La CI produit `lgcplayground-staging-<SHA40>` avec ZIP Moodle autonome, manifest et `SHA256SUMS`.
+- Le ZIP doit contenir les assets Pyodide ; aucun build npm ne doit être requis sur STAGING.
+- Vérifier le SHA-256 avant installation.
+- Première option : installateur Moodle natif sur STAGING. Ne pas élargir un worker MoodleOps ou un compte VPS juste pour contourner un problème d'accès.
+- Si SSH est utilisé, vérifier explicitement `$CFG->wwwroot`, le marqueur STAGING et la destination `mod/lgcplayground` avant mutation.
+- Après installation, smoke test avec élève nommé : exécution, validation, reload/reprise, completion, puis au moins P0 → P1.
+- Ne jamais faire de refresh STAGING destructif comme simple rollback de plugin.
+- Procédure détaillée : `docs/terrain-de-jeu/11_deploiement_staging.md`.
+
 ### Déploiement preview LGC
 Projet : `cours-python-playground-deploy`.
 
