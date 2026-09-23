@@ -8,6 +8,7 @@ ConditionPathExists=/run/playground-dev/deploy.request
 Type=oneshot
 User=root
 Group=root
+SupplementaryGroups=moodle-agent
 ExecStart=/usr/local/sbin/playground-dev-dispatch
 TimeoutStartSec=30m
 UMask=0027
