@@ -63,5 +63,10 @@ function xmldb_lgcplayground_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2026092304, 'lgcplayground');
     }
 
+    if ($oldversion < 2026092305) {
+        // No schema change. Publish the demo-ready UI polish.
+        upgrade_mod_savepoint(true, 2026092305, 'lgcplayground');
+    }
+
     return true;
 }
