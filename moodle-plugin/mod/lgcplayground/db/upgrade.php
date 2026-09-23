@@ -58,5 +58,10 @@ function xmldb_lgcplayground_upgrade(int $oldversion): bool {
         upgrade_mod_savepoint(true, 2026092303, 'lgcplayground');
     }
 
+    if ($oldversion < 2026092304) {
+        // No schema change. Publish the expanded Python P0-P4 mission pack.
+        upgrade_mod_savepoint(true, 2026092304, 'lgcplayground');
+    }
+
     return true;
 }
