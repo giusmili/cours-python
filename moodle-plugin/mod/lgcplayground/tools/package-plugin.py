@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -62,15 +63,18 @@ def resolve_commit(root: Path, requested: str | None) -> str:
     return value
 
 
-def plugin_version(version_php: Path) -> int:
+def plugin_metadata(version_php: Path) -> tuple[int, str]:
     text = version_php.read_text(encoding="utf-8")
     component = re.search(r"\$plugin->component\s*=\s*'([^']+)'\s*;", text)
     version = re.search(r"\$plugin->version\s*=\s*(\d+)\s*;", text)
+    release = re.search(r"\$plugin->release\s*=\s*'([^']+)'\s*;", text)
     if not component or component.group(1) != COMPONENT:
         raise SystemExit(f"unexpected Moodle component in {version_php}")
     if not version:
         raise SystemExit(f"unable to parse plugin version from {version_php}")
-    return int(version.group(1))
+    if not release:
+        raise SystemExit(f"unable to parse plugin release from {version_php}")
+    return int(version.group(1)), release.group(1)
 
 
 def iter_runtime_files(plugin_root: Path) -> list[Path]:
@@ -129,6 +133,52 @@ def verify_archive(path: Path, expected_files: list[dict[str, object]]) -> None:
                 raise SystemExit(f"unsafe archive member: {info.filename}")
 
 
+def write_promoter_release(
+    plugin_root: Path,
+    files: list[Path],
+    destination: Path,
+    commit: str,
+    version: int,
+    release: str,
+) -> dict[str, object]:
+    if destination.exists():
+        shutil.rmtree(destination)
+
+    plugin_destination = destination / "plugin"
+    plugin_destination.mkdir(parents=True)
+    manifest_files: list[dict[str, str]] = []
+
+    for source in files:
+        relative = source.relative_to(plugin_root)
+        target = plugin_destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        manifest_files.append(
+            {
+                "path": f"plugin/{relative.as_posix()}",
+                "sha256": sha256_file(target),
+            }
+        )
+
+    manifest: dict[str, object] = {
+        "schema_version": 1,
+        "repository": REPOSITORY,
+        "commit": commit,
+        "extension": {
+            "component": COMPONENT,
+            "type": "mod",
+            "version": version,
+            "release": release,
+        },
+        "files": manifest_files,
+    }
+    (destination / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", default="dist/playground-staging")
@@ -151,15 +201,24 @@ def main() -> int:
         raise SystemExit("missing required runtime files:\n- " + "\n- ".join(missing))
 
     commit = resolve_commit(root, args.commit)
-    version = plugin_version(plugin_root / "version.php")
+    version, release = plugin_metadata(plugin_root / "version.php")
     files = iter_runtime_files(plugin_root)
     short = commit[:12]
     archive_path = output_dir / f"{PLUGIN_DIRNAME}-{short}.zip"
     manifest_path = output_dir / f"{PLUGIN_DIRNAME}-{short}.manifest.json"
+    promoter_dir = output_dir / f"{PLUGIN_DIRNAME}-promoter-{short}"
     sums_path = output_dir / "SHA256SUMS"
 
     manifest_files = write_zip(plugin_root, files, archive_path)
     verify_archive(archive_path, manifest_files)
+    promoter_manifest = write_promoter_release(
+        plugin_root,
+        files,
+        promoter_dir,
+        commit,
+        version,
+        release,
+    )
 
     package = {
         "schema_version": 1,
@@ -187,11 +246,14 @@ def main() -> int:
             {
                 "archive": str(archive_path.relative_to(root)),
                 "manifest": str(manifest_path.relative_to(root)),
+                "promoter_release": str(promoter_dir.relative_to(root)),
                 "sha256": package["archive_sha256"],
                 "size": package["archive_size"],
                 "files": len(manifest_files),
                 "commit": commit,
                 "plugin_version": version,
+                "plugin_release": release,
+                "promoter_files": len(promoter_manifest["files"]),
             },
             indent=2,
         )

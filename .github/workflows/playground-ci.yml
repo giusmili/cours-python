@@ -115,6 +115,7 @@ jobs:
           EXPECTED_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
+          import hashlib
           import json
           import os
           import pathlib
@@ -124,11 +125,20 @@ jobs:
           manifest_path = next(root.glob('lgcplayground-*.manifest.json'))
           manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
           archive = root / manifest['archive']
+          promoter_root = next(root.glob('lgcplayground-promoter-*'))
+          promoter_manifest = json.loads(
+              (promoter_root / 'manifest.json').read_text(encoding='utf-8')
+          )
 
           assert manifest['repository'] == 'giusmili/cours-python'
           assert manifest['component'] == 'mod_lgcplayground'
           assert manifest['commit'] == os.environ['EXPECTED_SHA']
           assert archive.is_file() and archive.stat().st_size > 0
+          assert promoter_manifest['schema_version'] == 1
+          assert promoter_manifest['repository'] == 'giusmili/cours-python'
+          assert promoter_manifest['commit'] == os.environ['EXPECTED_SHA']
+          assert promoter_manifest['extension']['component'] == 'mod_lgcplayground'
+          assert promoter_manifest['extension']['type'] == 'mod'
 
           with zipfile.ZipFile(archive) as zf:
               names = [name for name in zf.namelist() if not name.endswith('/')]
@@ -144,7 +154,24 @@ jobs:
               }
               assert required.issubset(names)
 
-          print(f'verified {archive.name}: {len(names)} files')
+          expected_promoter = {
+              entry['path']: entry['sha256']
+              for entry in promoter_manifest['files']
+          }
+          actual_promoter = {}
+          for path in sorted((promoter_root / 'plugin').rglob('*')):
+              if path.is_file():
+                  relative = path.relative_to(promoter_root).as_posix()
+                  actual_promoter[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+          assert actual_promoter == expected_promoter
+          assert {name.removeprefix('lgcplayground/') for name in names} == {
+              name.removeprefix('plugin/') for name in actual_promoter
+          }
+
+          print(
+              f'verified {archive.name} and Promoter release: '
+              f'{len(names)} files'
+          )
           PY
 
       - name: Upload STAGING-ready Moodle plugin

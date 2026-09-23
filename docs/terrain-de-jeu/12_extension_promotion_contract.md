@@ -26,13 +26,13 @@ Playground reste propriétaire de son build et utilise Promoter uniquement pour 
 
 ## Conséquence pour le pipeline actuel Playground
 
-Ne pas supprimer ni réécrire le pipeline actuel. Il produit déjà un artefact STAGING autonome avec ZIP, manifest et SHA256SUMS, ce qui est une excellente base.
+Ne pas supprimer ni réécrire le pipeline actuel. Il produit un artefact STAGING autonome avec ZIP, manifest et SHA256SUMS, et produit désormais en parallèle un répertoire de release conforme au contrat V1 de Promoter (`manifest.json` + `plugin/`).
 
-La migration future consiste à adapter les métadonnées de cet artefact au contrat générique Promoter puis à lui confier la promotion vers STAGING.
+Le ZIP historique reste disponible pendant la transition. La release Promoter porte les métadonnées génériques (`extension.component`, `type`, `version`, `release`) et les hashes de tous les fichiers sous `plugin/`.
 
 Promoter ne doit jamais lancer la génération Pyodide ou un build npm spécifique au Playground sur le serveur STAGING. Tous les assets nécessaires doivent déjà être présents dans l artefact produit par la CI Playground.
 
-## Tant que Promoter n est pas opérationnel
+## Tant que le worker Promoter n est pas installé sur STAGING
 
 - conserver la procédure STAGING actuelle ;
 - ne pas élargir MoodleOps avec un runner Playground spécifique ;
@@ -40,4 +40,6 @@ Promoter ne doit jamais lancer la génération Pyodide ou un build npm spécifiq
 - si un besoin de déploiement générique apparaît, le consigner pour Promoter au lieu de le réimplémenter ici ;
 - aucun PROD.
 
-Le nouveau dépôt Promoter existe déjà mais son bootstrap Git est en attente de son enrôlement AgentCtl. Cela ne bloque pas les travaux pédagogiques ou runtime du Playground.
+Le dépôt `La-Grande-Classe-R-D/moodle-extension-promoter` est enrôlé dans AgentCtl et sa V1 est fusionnée dans `main`. Le worker STAGING n est pas encore installé : cette installation est explicitement reportée à la VM de travail, sans transporter de clé privée depuis Mint.
+
+Le prochain test d intégration réel consiste donc à télécharger la release Promoter produite par la CI Playground, la valider avec Promoter sur la VM, puis exécuter `prepare`/`apply` sur Moodle STAGING après installation du worker.
