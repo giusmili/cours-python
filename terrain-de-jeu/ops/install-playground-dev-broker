@@ -41,6 +41,7 @@ install -o root -g root -m 0755 "$USER_WORKER" /usr/local/libexec/playground-age
 install -o root -g root -m 0755 "$USER_HOST_RUN" /usr/local/libexec/playground-agentctl-host-run
 install -o root -g root -m 0600 "$USER_AGENTCTL_CONFIG" /etc/playground-dev/agentctl-worker.env
 
+install -o root -g root -m 0644 "$OPS_DIR/Dockerfile.preview" /usr/local/libexec/playground-dev-Dockerfile
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-deploy" /usr/local/libexec/playground-dev-deploy
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-dispatch" /usr/local/sbin/playground-dev-dispatch
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-request" /usr/local/bin/playground-dev-request
