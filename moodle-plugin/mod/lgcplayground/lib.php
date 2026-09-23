@@ -11,6 +11,7 @@ function lgcplayground_supports(string $feature): bool|string|null {
     return match ($feature) {
         FEATURE_MOD_INTRO => true,
         FEATURE_SHOW_DESCRIPTION => true,
+        FEATURE_COMPLETION_HAS_RULES => true,
         FEATURE_BACKUP_MOODLE2 => false,
         default => null,
     };
@@ -62,6 +63,64 @@ function lgcplayground_delete_instance(int $id): bool {
         return false;
     }
 
+    $DB->delete_records('lgcplayground_progress', ['playgroundid' => $id]);
     $DB->delete_records('lgcplayground', ['id' => $id]);
     return true;
+}
+
+/**
+ * Add cached data needed by completion.
+ *
+ * @param stdClass $coursemodule
+ * @return cached_cm_info|false
+ */
+function lgcplayground_get_coursemodule_info($coursemodule) {
+    global $DB;
+
+    $activity = $DB->get_record(
+        'lgcplayground',
+        ['id' => $coursemodule->instance],
+        'id, name, intro, introformat, completionpass, track, missionpack',
+    );
+    if (!$activity) {
+        return false;
+    }
+
+    $result = new cached_cm_info();
+    $result->name = $activity->name;
+
+    if ($coursemodule->showdescription) {
+        $result->content = format_module_intro(
+            'lgcplayground',
+            $activity,
+            $coursemodule->id,
+            false,
+        );
+    }
+
+    $result->customdata['track'] = $activity->track;
+    $result->customdata['missionpack'] = $activity->missionpack;
+
+    if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC) {
+        $result->customdata['customcompletionrules']['completionpass'] = (int)$activity->completionpass;
+    }
+
+    return $result;
+}
+
+/**
+ * Return human-readable active completion rules.
+ *
+ * @param cm_info|stdClass $cm
+ * @return array
+ */
+function mod_lgcplayground_get_completion_active_rule_descriptions($cm): array {
+    if (
+        empty($cm->customdata['customcompletionrules']['completionpass'])
+        || $cm->completion != COMPLETION_TRACKING_AUTOMATIC
+    ) {
+        return [];
+    }
+
+    return [get_string('completionpass', 'mod_lgcplayground')];
 }
