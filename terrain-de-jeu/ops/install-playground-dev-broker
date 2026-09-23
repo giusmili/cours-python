@@ -8,7 +8,8 @@ fi
 
 readonly DEPLOY_USER='moodle-agent'
 readonly DEPLOY_HOME='/home/moodle-agent'
-readonly ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+root_dir="$(cd "$(dirname "$0")/.." && pwd)"
+readonly ROOT_DIR="$root_dir"
 readonly OPS_DIR="$ROOT_DIR/ops"
 readonly USER_WORKER="$DEPLOY_HOME/.local/bin/agentctl-worker"
 readonly USER_HOST_RUN="$DEPLOY_HOME/.local/bin/agentctl-host-run"
