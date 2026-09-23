@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo 'This installer must run as root.' >&2
+  exit 1
+fi
+
+readonly DEPLOY_USER='moodle-agent'
+readonly DEPLOY_HOME='/home/moodle-agent'
+readonly ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+readonly OPS_DIR="$ROOT_DIR/ops"
+readonly USER_WORKER="$DEPLOY_HOME/.local/bin/agentctl-worker"
+readonly USER_HOST_RUN="$DEPLOY_HOME/.local/bin/agentctl-host-run"
+readonly USER_AGENTCTL_CONFIG="$DEPLOY_HOME/.config/agentctl-worker/env"
+readonly PREVIEW_CONFIG_DIR="$DEPLOY_HOME/.config/playground-dev"
+readonly PREVIEW_ENV="$PREVIEW_CONFIG_DIR/env"
+
+id "$DEPLOY_USER" >/dev/null 2>&1 || {
+  echo "Missing user: $DEPLOY_USER" >&2
+  exit 1
+}
+
+for path in "$USER_WORKER" "$USER_HOST_RUN" "$USER_AGENTCTL_CONFIG"; do
+  [ -r "$path" ] || {
+    echo "Missing existing LGC AgentCtl worker asset: $path" >&2
+    exit 1
+  }
+done
+
+install -d -o root -g root -m 0755 /usr/local/libexec
+install -d -o root -g root -m 0755 /usr/local/sbin
+install -d -o root -g root -m 0755 /usr/local/bin
+install -d -o root -g root -m 0700 /etc/playground-dev
+install -d -o root -g root -m 0755 /var/lib/playground-dev
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 0700 "$PREVIEW_CONFIG_DIR"
+
+install -o root -g root -m 0755 "$USER_WORKER" /usr/local/libexec/playground-agentctl-worker
+install -o root -g root -m 0755 "$USER_HOST_RUN" /usr/local/libexec/playground-agentctl-host-run
+install -o root -g root -m 0600 "$USER_AGENTCTL_CONFIG" /etc/playground-dev/agentctl-worker.env
+
+install -o root -g root -m 0755 "$OPS_DIR/playground-dev-deploy" /usr/local/libexec/playground-dev-deploy
+install -o root -g root -m 0755 "$OPS_DIR/playground-dev-dispatch" /usr/local/sbin/playground-dev-dispatch
+install -o root -g root -m 0755 "$OPS_DIR/playground-dev-request" /usr/local/bin/playground-dev-request
+
+install -o root -g root -m 0644 "$OPS_DIR/playground-dev-deploy.service" /etc/systemd/system/playground-dev-deploy.service
+install -o root -g root -m 0644 "$OPS_DIR/playground-dev-deploy.path" /etc/systemd/system/playground-dev-deploy.path
+install -o root -g root -m 0644 "$OPS_DIR/playground-dev-tmpfiles.conf" /etc/tmpfiles.d/playground-dev.conf
+
+if [ ! -f "$PREVIEW_ENV" ]; then
+  password="$(python3 - <<'PY'
+import secrets
+print(secrets.token_urlsafe(30))
+PY
+)"
+  umask 077
+  {
+    printf 'PREVIEW_USER=kevin\n'
+    printf 'PREVIEW_PASSWORD=%s\n' "$password"
+  } > "$PREVIEW_ENV"
+  chown "$DEPLOY_USER:$DEPLOY_USER" "$PREVIEW_ENV"
+  chmod 0600 "$PREVIEW_ENV"
+  unset password
+fi
+
+systemd-tmpfiles --create /etc/tmpfiles.d/playground-dev.conf
+systemctl daemon-reload
+systemctl enable --now playground-dev-deploy.path >/dev/null
+
+echo 'playground-dev broker installed.'
+echo 'Preview credentials are stored locally at:'
+echo "  $PREVIEW_ENV"
+echo 'No credential value was printed.'
+echo 'Queue a deployment as moodle-agent with:'
+echo '  playground-dev-request'
