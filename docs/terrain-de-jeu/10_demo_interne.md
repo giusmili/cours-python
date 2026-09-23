@@ -150,3 +150,16 @@ Le parcours peut aussi être présenté en mode invité pour démontrer l'UX ; d
 ## Message de conclusion
 
 > « Aujourd'hui c'est Python débutant. La même activité peut devenir le point d'entrée de nos laboratoires Web, puis plus tard de vrais environnements Linux/réseau isolés, tout en gardant Moodle comme colonne vertébrale pédagogique. »
+
+## Gate de démo courant
+
+La passe 0.6.0-alpha a été validée en Chromium sur Moodle LOCAL :
+- 5 missions présentes ;
+- 4 missions futures verrouillées au démarrage ;
+- raccourci clavier d'exécution fonctionnel ;
+- P0 → P4 entièrement jouable ;
+- 5/5 et parcours complet à la fin ;
+- aucune erreur console/page.
+
+Ce gate doit rester vert avant toute présentation planifiée.
+
