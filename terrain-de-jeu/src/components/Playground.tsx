@@ -16,6 +16,7 @@ import {
   resetPythonRuntime,
   runPythonInSandbox,
 } from "../lib/pythonRuntime";
+import CodeEditor from "./CodeEditor";
 
 type Status = "idle" | "running" | "success" | "error";
 
@@ -670,11 +671,11 @@ export function Playground() {
                 <span>{currentMission.fileName}</span>
                 <span>{t.saved}</span>
               </div>
-              <textarea
-                spellCheck={false}
+              <CodeEditor
+                key={currentMission.id}
+                fileName={currentMission.fileName}
                 value={currentCode}
-                onChange={(event) => updateCode(event.target.value)}
-                aria-label={currentMission.fileName}
+                onChange={updateCode}
               />
               <div className="actions">
                 <button className="ghost" onClick={resetMission}>
