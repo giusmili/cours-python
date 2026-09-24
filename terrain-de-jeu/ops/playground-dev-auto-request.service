@@ -1,0 +1,25 @@
+[Unit]
+Description=Queue CI-green Playground preview deployments
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/etc/playground-dev/source.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/libexec/playground-dev-auto-request
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/run/playground-dev /var/lib/playground-dev
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

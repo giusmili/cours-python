@@ -2,90 +2,141 @@
 
 URL cible : `https://playground-dev.lagrandeclasse.fr`
 
-## Modèle retenu
-- source déployée : exclusivement `kevin/missions` ;
-- aucun secret GitHub requis : le repo est public et le clone VPS est en HTTPS lecture seule ;
-- CI GitHub sans secret avant déploiement ;
-- build Docker sur le VPS ;
-- TLS via le Traefik LGC existant ;
-- Basic Auth temporaire gérée par l'application ;
-- déploiement privilégié via un broker systemd root-owned, pas via l'accès Docker direct de `moodle-agent`.
+## Flux normal
 
-## Pourquoi un broker
-Le compte RDC LGC `moodle-agent` n'appartient volontairement pas au groupe `docker`. L'ajouter à ce groupe lui donnerait pratiquement les privilèges root.
+La source déployée est exclusivement `kevin/missions`.
 
-Le broker ne donne aucun accès Docker générique. `moodle-agent` peut uniquement déposer une requête contenant un SHA.
+```text
+push kevin/missions
+  -> Terrain de jeu CI
+  -> poll VPS
+  -> CI verte pour le SHA exact
+  -> playground-dev-request
+  -> broker AgentCtl
+  -> build + smoke test + swap
+  -> playground-dev.lagrandeclasse.fr
+```
 
-Le service root :
-1. acquiert et maintient les leases AgentCtl exacts ;
-2. vérifie que le SHA est la tête actuelle de `kevin/missions` ;
-3. vérifie qu'une CI `Terrain de jeu CI` réussie existe pour ce SHA ;
-4. refuse tout rollback/non-fast-forward ;
-5. build l'application avec un **Dockerfile root-owned figé lors du bootstrap** ;
-6. smoke-teste l'image dans un conteneur sans privilèges avant le swap ;
-7. lance uniquement un conteneur `playground-dev` avec un réseau, des labels Traefik et des options de sécurité fixés dans le broker ;
-8. attend le healthcheck Docker puis le healthcheck HTTPS Traefik ;
-9. vérifie que la racine publique reste protégée par HTTP 401 ;
-10. tente un rollback vers l'image précédente si le nouveau runtime devient malsain.
+Le VPS vérifie le HEAD environ une fois par minute. Il ne contacte l'API Actions que si ce HEAD diffère du SHA déjà déployé ou déjà demandé.
 
-### Frontière importante
-Le broker root **ne lit pas le Compose versionné pour déployer**. Un Compose modifiable depuis Git pourrait sinon demander des volumes hôte, des capacités ou un mode privilégié.
+Le broker revérifie ensuite lui-même que :
+- le SHA demandé est toujours le HEAD de `kevin/missions` ;
+- une CI push `Terrain de jeu CI` réussie existe pour ce SHA ;
+- le déploiement reste fast-forward.
 
-Le Dockerfile utilisé en production est copié une fois vers `/usr/local/libexec/playground-dev-Dockerfile` et appartient à root. Une modification future de `ops/Dockerfile.preview` ou du broker impose donc une nouvelle installation root volontaire.
+Il build une image avec le Dockerfile root-owned, smoke-teste un candidat, swappe le conteneur, vérifie Docker puis HTTPS/Traefik, exige HTTP 401 à la racine sans identifiants, et tente un rollback si le nouveau runtime devient malsain.
 
-Le Compose du repo reste utile pour les tests locaux ; ce n'est pas la frontière d'autorité du VPS.
+## Sécurité
 
-## Bootstrap root one-shot
-Le broker nécessite une seule installation privilégiée. Depuis un clone **exactement synchronisé sur `kevin/missions`** :
+`moodle-agent` n'a pas d'accès Docker générique. Le broker root acquiert uniquement :
+- `host:vps-lgc/git`
+- `host:vps-lgc/docker`
+- `deploy:vps-lgc/playground-dev`
+- `service:playground-dev`
+
+GitHub Actions ne reçoit aucun accès SSH au VPS.
+
+Le broker ne lit pas le Compose versionné pour déployer. Le Dockerfile de déploiement est copié root-owned lors de l'installation du broker.
+
+## Installation / mise à jour du broker
+
+Depuis un clone synchronisé sur `kevin/missions` :
 
 ```bash
 cd terrain-de-jeu
 sudo ./ops/install-playground-dev-broker
 ```
 
-L'installateur :
-- copie le client AgentCtl déjà enrôlé du VPS vers des chemins root-owned ;
-- copie sa configuration dans `/etc/playground-dev/agentctl-worker.env` sans afficher le token ;
-- installe le Dockerfile figé, le dispatcher, le worker de déploiement et les unités systemd ;
-- crée un mot de passe de preview aléatoire sans l'afficher ;
-- stocke les identifiants uniquement dans `/home/moodle-agent/.config/playground-dev/env` en mode 600.
+L'installateur crée si nécessaire `/etc/playground-dev/source.env`, installe le poller et active `playground-dev-auto-request.timer`.
 
-Ne jamais committer ce fichier.
+Configuration publique par défaut :
 
-## Déclencher ensuite un déploiement
-Aucun sudo ni accès Docker n'est nécessaire :
+```bash
+PLAYGROUND_REPO_URL=https://github.com/giusmili/cours-python.git
+PLAYGROUND_BRANCH=kevin/missions
+PLAYGROUND_GIT_SSH_KEY=
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GITHUB_TOKEN_FILE=
+```
+
+Aucun secret GitHub n'est nécessaire tant que le dépôt est public.
+
+## Compatibilité dépôt privé
+
+Le chemin privé est prévu sans credential d'écriture sur le VPS.
+
+Utiliser :
+1. une GitHub Deploy Key **Read-only** dédiée à ce dépôt pour Git ;
+2. un fine-grained token limité au dépôt avec **Actions: Read-only** pour la vérification CI.
+
+Exemple de clé Git, créée sous `moodle-agent` :
+
+```bash
+sudo -u moodle-agent install -d -m 0700 /home/moodle-agent/.ssh
+sudo -u moodle-agent ssh-keygen -t ed25519 \
+  -f /home/moodle-agent/.ssh/playground-dev-readonly \
+  -N '' -C 'playground-dev@vps-lgc'
+sudo -u moodle-agent cat /home/moodle-agent/.ssh/playground-dev-readonly.pub
+```
+
+Ajouter uniquement la clé publique dans GitHub comme Deploy Key sans write access.
+
+Les host keys GitHub peuvent être écrites depuis l'API HTTPS GitHub :
+
+```bash
+curl -fsSL https://api.github.com/meta | python3 -c \
+'import json,sys; [print("github.com "+k) for k in json.load(sys.stdin)["ssh_keys"]]' \
+| sudo tee /etc/playground-dev/github_known_hosts >/dev/null
+sudo chown root:root /etc/playground-dev/github_known_hosts
+sudo chmod 0644 /etc/playground-dev/github_known_hosts
+```
+
+Stocker le token Actions read-only dans un fichier root-only, par exemple :
+
+```text
+/etc/playground-dev/github-actions-read.token
+```
+
+Puis configurer :
+
+```bash
+PLAYGROUND_REPO_URL=git@github.com:giusmili/cours-python.git
+PLAYGROUND_BRANCH=kevin/missions
+PLAYGROUND_GIT_SSH_KEY=/home/moodle-agent/.ssh/playground-dev-readonly
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GITHUB_TOKEN_FILE=/etc/playground-dev/github-actions-read.token
+```
+
+Ne jamais mettre la clé privée ou le token dans Git ni directement dans `source.env`.
+
+## Fallback manuel
+
+L'automatisation ne redemande pas en boucle un SHA déjà demandé. Après un incident, diagnostiquer puis utiliser explicitement :
 
 ```bash
 playground-dev-request
 ```
 
-La commande résout par défaut la tête courante de `kevin/missions` puis écrit une requête bornée dans `/run/playground-dev/deploy.request`.
-
-Pour demander explicitement un SHA :
+ou :
 
 ```bash
-playground-dev-request <40-hex-sha>
+playground-dev-request <SHA40>
 ```
 
+Une requête manuelle ne contourne pas les gates du broker.
+
 ## Vérifications
+
 ```bash
 curl -fsS https://playground-dev.lagrandeclasse.fr/api/health
 curl -I https://playground-dev.lagrandeclasse.fr/
+systemctl status playground-dev-auto-request.timer --no-pager
 systemctl status playground-dev-deploy.service --no-pager
+cat /var/lib/playground-dev/deployed_commit
 ```
 
 Attendu :
 - `/api/health` : HTTP 200 ;
 - `/` sans identifiants : HTTP 401 ;
+- timer actif ;
 - navigateur avec identifiants : application accessible.
-
-## AgentCtl
-Projet de déploiement : `cours-python-playground-deploy`.
-
-Ressources acquises par le broker :
-- `host:vps-lgc/git`
-- `host:vps-lgc/docker`
-- `deploy:vps-lgc/playground-dev`
-- `service:playground-dev`
-
-Le déploiement d'un SHA déjà présent dans la branche de référence ne mute pas GitHub et n'acquiert donc pas le lease repo.

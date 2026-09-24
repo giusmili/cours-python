@@ -106,6 +106,10 @@ URL : `https://playground-dev.lagrandeclasse.fr`.
 
 La preview autonome reste protégée par Basic Auth et sert exclusivement `kevin/missions`. Aucun secret VPS dans Git.
 
+Après un push sur `kevin/missions`, le VPS surveille le HEAD et queue automatiquement le déploiement seulement lorsque la CI push **Terrain de jeu CI** est verte pour ce SHA exact. Le broker revérifie HEAD + CI avant build/swap et conserve rollback + healthchecks. Le fallback manuel reste `playground-dev-request`.
+
+Le flux doit rester compatible avec un dépôt privé : source Git via deploy key read-only et vérification Actions via credential GitHub read-only stocké uniquement sur le VPS. Ne jamais ajouter de credential GitHub write au VPS ni d'accès SSH VPS à GitHub Actions. Voir `terrain-de-jeu/DEPLOY_PREVIEW.md`.
+
 ## Tests
 
 ### Prototype Next

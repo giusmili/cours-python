@@ -3,11 +3,37 @@ set -Eeuo pipefail
 
 readonly REQUEST_DIR='/run/playground-dev'
 readonly REQUEST="$REQUEST_DIR/deploy.request"
-readonly REPO_URL='https://github.com/giusmili/cours-python.git'
-readonly BRANCH='kevin/missions'
+readonly SOURCE_CONFIG='/etc/playground-dev/source.env'
+
+fail() { printf '[playground-request] ERROR: %s\n' "$*" >&2; exit 1; }
+
+configure_source() {
+  [ -r "$SOURCE_CONFIG" ] || fail "missing source configuration: $SOURCE_CONFIG"
+  # shellcheck disable=SC1090
+  source "$SOURCE_CONFIG"
+
+  REPO_URL="${PLAYGROUND_REPO_URL:-https://github.com/giusmili/cours-python.git}"
+  BRANCH="${PLAYGROUND_BRANCH:-kevin/missions}"
+  GIT_SSH_KEY="${PLAYGROUND_GIT_SSH_KEY:-}"
+  GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev/github_known_hosts}"
+
+  case "$REPO_URL" in
+    'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;
+    *) fail "unexpected repository URL: $REPO_URL" ;;
+  esac
+  [ "$BRANCH" = 'kevin/missions' ] || fail "unexpected branch: $BRANCH"
+
+  if [[ "$REPO_URL" == git@github.com:* ]]; then
+    [ -n "$GIT_SSH_KEY" ] || fail 'private SSH source requires PLAYGROUND_GIT_SSH_KEY'
+    [ -r "$GIT_SSH_KEY" ] || fail "unreadable deploy key: $GIT_SSH_KEY"
+    [ -r "$GIT_KNOWN_HOSTS" ] || fail "unreadable known_hosts: $GIT_KNOWN_HOSTS"
+    export GIT_SSH_COMMAND="ssh -i $GIT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$GIT_KNOWN_HOSTS"
+  fi
+}
 
 sha="${1:-}"
 if [ -z "$sha" ]; then
+  configure_source
   sha="$(git ls-remote "$REPO_URL" "refs/heads/$BRANCH" | awk 'NR == 1 {print $1}')"
 fi
 

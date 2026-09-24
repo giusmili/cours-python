@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly REPO_URL='https://github.com/giusmili/cours-python.git'
-readonly BRANCH='kevin/missions'
+readonly SOURCE_CONFIG='/etc/playground-dev/source.env'
 readonly SOURCE_DIR='/opt/playground-dev-source'
 readonly STATE_DIR='/var/lib/playground-dev'
 readonly STATE_FILE="$STATE_DIR/deployed_commit"
@@ -17,6 +16,29 @@ fail() { printf '[playground-dev] ERROR: %s\n' "$*" >&2; exit 1; }
 
 requested_sha="${1:-}"
 [[ "$requested_sha" =~ ^[0-9a-f]{40}$ ]] || fail 'expected one 40-hex commit SHA'
+
+[ -r "$SOURCE_CONFIG" ] || fail "missing source configuration: $SOURCE_CONFIG"
+# shellcheck disable=SC1090
+source "$SOURCE_CONFIG"
+
+REPO_URL="${PLAYGROUND_REPO_URL:-https://github.com/giusmili/cours-python.git}"
+BRANCH="${PLAYGROUND_BRANCH:-kevin/missions}"
+GIT_SSH_KEY="${PLAYGROUND_GIT_SSH_KEY:-}"
+GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev/github_known_hosts}"
+GITHUB_TOKEN_FILE="${PLAYGROUND_GITHUB_TOKEN_FILE:-}"
+
+case "$REPO_URL" in
+  'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;
+  *) fail "unexpected repository URL: $REPO_URL" ;;
+esac
+[ "$BRANCH" = 'kevin/missions' ] || fail "unexpected branch: $BRANCH"
+
+if [[ "$REPO_URL" == git@github.com:* ]]; then
+  [ -n "$GIT_SSH_KEY" ] || fail 'private SSH source requires PLAYGROUND_GIT_SSH_KEY'
+  [ -r "$GIT_SSH_KEY" ] || fail "unreadable deploy key: $GIT_SSH_KEY"
+  [ -r "$GIT_KNOWN_HOSTS" ] || fail "unreadable known_hosts: $GIT_KNOWN_HOSTS"
+  export GIT_SSH_COMMAND="ssh -i $GIT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$GIT_KNOWN_HOSTS"
+fi
 
 mkdir -p "$STATE_DIR" "$STATE_DIR/docker-config"
 chmod 0700 "$STATE_DIR/docker-config"
@@ -41,7 +63,14 @@ cd "$SOURCE_DIR"
 GIT=(git -c safe.directory="$SOURCE_DIR")
 
 remote="$("${GIT[@]}" remote get-url origin 2>/dev/null || true)"
-[ "$remote" = "$REPO_URL" ] || fail "unexpected origin: $remote"
+case "$remote" in
+  'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;
+  *) fail "unexpected origin: $remote" ;;
+esac
+if [ "$remote" != "$REPO_URL" ]; then
+  log 'updating deploy clone origin to configured read-only source'
+  "${GIT[@]}" remote set-url origin "$REPO_URL"
+fi
 
 if [ -n "$("${GIT[@]}" status --porcelain --untracked-files=all)" ]; then
   fail 'deploy source clone is dirty; refusing to overwrite unknown work'
@@ -57,27 +86,46 @@ remote_sha="$("${GIT[@]}" rev-parse "origin/$BRANCH")"
 "${GIT[@]}" merge-base --is-ancestor "$requested_sha" "origin/$BRANCH" || fail 'requested commit is outside kevin/missions history'
 
 log 'verifying successful Terrain de jeu CI for the requested SHA'
-TARGET_SHA="$requested_sha" python3 - <<'PY'
+TARGET_SHA="$requested_sha" GITHUB_TOKEN_FILE="$GITHUB_TOKEN_FILE" python3 - <<'PY'
 import json
 import os
+import pathlib
 import sys
+import urllib.error
 import urllib.request
 
 sha = os.environ["TARGET_SHA"]
+token_file = os.environ.get("GITHUB_TOKEN_FILE", "").strip()
+headers = {
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "playground-dev-deploy",
+}
+if token_file:
+    path = pathlib.Path(token_file)
+    if not path.is_file():
+        print(f"configured GitHub token file is missing: {path}", file=sys.stderr)
+        raise SystemExit(1)
+    token = path.read_text(encoding="utf-8").strip()
+    if not token:
+        print(f"configured GitHub token file is empty: {path}", file=sys.stderr)
+        raise SystemExit(1)
+    headers["Authorization"] = f"Bearer {token}"
+
 url = (
     "https://api.github.com/repos/giusmili/cours-python/actions/runs"
     f"?head_sha={sha}&status=completed&per_page=20"
 )
-request = urllib.request.Request(
-    url,
-    headers={
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "playground-dev-deploy",
-    },
-)
+request = urllib.request.Request(url, headers=headers)
 try:
     with urllib.request.urlopen(request, timeout=20) as response:
         payload = json.load(response)
+except urllib.error.HTTPError as exc:
+    print(
+        f"cannot verify GitHub Actions status: HTTP {exc.code}; "
+        "configure a read-only Actions token when the repository is private",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
 except Exception as exc:
     print(f"cannot verify GitHub Actions status: {exc}", file=sys.stderr)
     raise SystemExit(1)

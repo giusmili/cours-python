@@ -17,6 +17,7 @@ readonly USER_AGENTCTL_CONFIG="$DEPLOY_HOME/.config/agentctl-worker/env"
 readonly PREVIEW_CONFIG_DIR="$DEPLOY_HOME/.config/playground-dev"
 readonly PREVIEW_ENV="$PREVIEW_CONFIG_DIR/env"
 readonly ROOT_PREVIEW_ENV='/etc/playground-dev/preview.env'
+readonly SOURCE_ENV='/etc/playground-dev/source.env'
 
 id "$DEPLOY_USER" >/dev/null 2>&1 || {
   echo "Missing user: $DEPLOY_USER" >&2
@@ -44,12 +45,27 @@ install -o root -g root -m 0600 "$USER_AGENTCTL_CONFIG" /etc/playground-dev/agen
 
 install -o root -g root -m 0644 "$OPS_DIR/Dockerfile.preview" /usr/local/libexec/playground-dev-Dockerfile
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-deploy" /usr/local/libexec/playground-dev-deploy
+install -o root -g root -m 0755 "$OPS_DIR/playground-dev-auto-request" /usr/local/libexec/playground-dev-auto-request
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-dispatch" /usr/local/sbin/playground-dev-dispatch
 install -o root -g root -m 0755 "$OPS_DIR/playground-dev-request" /usr/local/bin/playground-dev-request
 
 install -o root -g root -m 0644 "$OPS_DIR/playground-dev-deploy.service" /etc/systemd/system/playground-dev-deploy.service
 install -o root -g root -m 0644 "$OPS_DIR/playground-dev-deploy.path" /etc/systemd/system/playground-dev-deploy.path
+install -o root -g root -m 0644 "$OPS_DIR/playground-dev-auto-request.service" /etc/systemd/system/playground-dev-auto-request.service
+install -o root -g root -m 0644 "$OPS_DIR/playground-dev-auto-request.timer" /etc/systemd/system/playground-dev-auto-request.timer
 install -o root -g root -m 0644 "$OPS_DIR/playground-dev-tmpfiles.conf" /etc/tmpfiles.d/playground-dev.conf
+
+if [ ! -f "$SOURCE_ENV" ]; then
+  cat > "$SOURCE_ENV" <<'EOF'
+PLAYGROUND_REPO_URL=https://github.com/giusmili/cours-python.git
+PLAYGROUND_BRANCH=kevin/missions
+PLAYGROUND_GIT_SSH_KEY=
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GITHUB_TOKEN_FILE=
+EOF
+fi
+chown root:root "$SOURCE_ENV"
+chmod 0644 "$SOURCE_ENV"
 
 if [ ! -f "$PREVIEW_ENV" ]; then
   password="$(python3 - <<'PY'
@@ -72,13 +88,16 @@ install -o root -g root -m 0600 "$PREVIEW_ENV" "$ROOT_PREVIEW_ENV"
 
 systemd-tmpfiles --create /etc/tmpfiles.d/playground-dev.conf
 systemctl daemon-reload
-systemctl reset-failed playground-dev-deploy.service playground-dev-deploy.path 2>/dev/null || true
-systemctl enable playground-dev-deploy.path >/dev/null
+systemctl reset-failed playground-dev-deploy.service playground-dev-deploy.path \
+  playground-dev-auto-request.service playground-dev-auto-request.timer 2>/dev/null || true
+systemctl enable playground-dev-deploy.path playground-dev-auto-request.timer >/dev/null
 systemctl restart playground-dev-deploy.path
+systemctl restart playground-dev-auto-request.timer
 
 echo 'playground-dev broker installed.'
 echo 'Preview credentials are stored locally at:'
 echo "  $PREVIEW_ENV"
 echo 'No credential value was printed.'
-echo 'Queue a deployment as moodle-agent with:'
+echo 'Automatic preview deployment polling is enabled.'
+echo 'Manual fallback as moodle-agent:'
 echo '  playground-dev-request'
