@@ -63,12 +63,14 @@ Après une mission réussie :
 - passer à la mission suivante ;
 - expliquer que les missions futures restent verrouillées tant que les précédentes ne sont pas réussies.
 
-Le pack courant montre une progression très courte :
+Le pack courant montre une progression courte mais complète :
 - P0 — exécuter / `print()` ;
 - P1 — variables ;
 - P2 — types ;
 - P3 — conditions ;
-- P4 — boucles.
+- P4 — boucles ;
+- P5 — fonctions, paramètres, `return` ;
+- P6 — incident final combinant liste + boucle + condition + fonction.
 
 ### 4. Montrer l'intégration Moodle — 60 s
 
@@ -122,30 +124,32 @@ Pour les futurs labs Linux/réseau/cyber : runner externe isolé, uniquement lor
 
 ## Ce qui est déjà réel
 
-À la date du 23 septembre 2026 :
-- plugin Moodle installable ;
-- Moodle 5.2.3+ LOCAL validé ;
-- cinq missions Python P0–P4 ;
+État courant au 24 septembre 2026 :
+- plugin Moodle installable et packagé par CI ;
+- Moodle 5.2.3+ LOCAL validé sur le checkpoint P0–P4 ;
+- sept missions Python P0–P6 présentes dans le pack courant ;
 - exécution Python réelle dans le navigateur ;
 - timeout des programmes bloqués ;
 - accès réseau Python coupé dans le worker ;
-- progression par utilisateur ;
-- reprise multi-contexte ;
+- progression par utilisateur et reprise multi-contexte ;
 - completion Moodle ;
-- Privacy API ;
-- suite PHPUnit dédiée ;
-- E2E Chromium P0 → P4.
+- Privacy API et backup/restore ;
+- première vue enseignant en lecture seule ;
+- E2E Chromium P0 → P4 historique vert.
+
+P5–P6 et la vue enseignant sont validés côté code/CI mais attendent encore leur premier passage navigateur Moodle complet.
 
 ## Ce qu'il ne faut pas survendre
 
 La démo n'est pas encore une V1 de production complète.
 
 Restent notamment :
-- davantage de contenu pédagogique ;
-- backup/restore Moodle ;
-- éventuels outils enseignant ;
+- validation navigateur Moodle du parcours courant P0–P6 ;
+- validation navigateur de la vue enseignant ;
+- première promotion Playground réelle via Promoter sur STAGING ;
 - politique de preuve forte pour Roads ;
-- validation STAGING/PROD avant usage réel en classe.
+- davantage de contenu pédagogique seulement après validation de la qualité du parcours actuel ;
+- validation PROD uniquement lorsqu'une vraie mise en production sera décidée.
 
 Une réussite Playground actuelle est une **bonne vérité de progression Moodle**, mais elle n'est pas automatiquement une preuve forte d'acquisition pour Roads : la validation technique de ces missions débutantes reste côté navigateur.
 
@@ -165,13 +169,18 @@ Le parcours peut aussi être présenté en mode invité pour démontrer l'UX ; d
 
 ## Gate de démo courant
 
-La passe 0.6.0-alpha a été validée en Chromium sur Moodle LOCAL :
-- 5 missions présentes ;
-- 4 missions futures verrouillées au démarrage ;
-- raccourci clavier d'exécution fonctionnel ;
+**Gate navigateur confirmé (checkpoint 0.6.0-alpha)** :
 - P0 → P4 entièrement jouable ;
-- 5/5 et parcours complet à la fin ;
+- 5/5 et parcours complet ;
+- verrouillage séquentiel correct ;
+- raccourci clavier fonctionnel ;
 - aucune erreur console/page.
 
-Ce gate doit rester vert avant toute présentation planifiée.
+**Version courante du code : 0.8.0-alpha** :
+- P0–P6 présents ;
+- vue enseignant présente ;
+- CI et packaging verts ;
+- 7/7 navigateur et vue enseignant encore à valider dans Moodle.
+
+Pour une démo immédiate, ne pas présenter comme « validé en navigateur » ce qui appartient encore au second bloc.
 

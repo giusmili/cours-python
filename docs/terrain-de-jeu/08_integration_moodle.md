@@ -23,7 +23,8 @@ PHP décide la vérité institutionnelle :
 - contexte cours/utilisateur ;
 - capacités ;
 - paramètres du pack de missions ;
-- plus tard : tentatives, progression multi-device, validation institutionnelle, completion et éventuellement notes ;
+- tentatives, progression multi-device et completion ;
+- éventuellement notes plus tard si un besoin pédagogique réel le justifie ;
 - endpoints serveur supportés par Moodle.
 
 Ne jamais exécuter le code élève dans PHP.
@@ -74,7 +75,7 @@ Un `mod_` donne naturellement :
 - disponibilité ;
 - completion ;
 - gradebook si nécessaire ;
-- backup/restore à terme ;
+- backup/restore ;
 - visibilité dans les surfaces d'activité Moodle.
 
 Le plugin s'appelle provisoirement `mod_lgcplayground` (dossier `mod/lgcplayground`).
@@ -124,44 +125,26 @@ Factory ne fabrique pas le moteur du Playground et le Playground ne devient pas 
 
 Le prototype Next utilise `localStorage`. Cela reste acceptable pour le harnais autonome.
 
-Dans Moodle :
-- l'instance d'activité existe dès le premier squelette ;
-- la progression fine par utilisateur sera ajoutée dans une table plugin dédiée après validation du premier rendu Moodle réel ;
-- le navigateur peut garder un brouillon local comme cache UX, mais Moodle deviendra la source de vérité multi-device.
+Dans Moodle, la source de vérité est maintenant la table de progression du plugin :
+- tentatives par utilisateur et mission ;
+- réussite monotone d'une mission ;
+- reprise de progression multi-device ;
+- completion de l'activité lorsque toutes les missions requises sont réussies ;
+- Privacy API et backup/restore ;
+- aucune persistance serveur du code source élève ni de stdout.
 
-Ne pas inventer maintenant une base séparée ou un second backend.
+Le navigateur peut conserver un état UX transitoire, mais il ne remplace pas la vérité Moodle. Ne pas ajouter de base séparée ou de second backend.
 
-## Migration progressive
+## Migration progressive — état actuel
 
-### Phase 0 — prototype conservé
-Le Next.js existant continue de documenter et tester l'expérience.
+- **Phase 0 — prototype conservé :** fait. Next.js reste le harnais/preview.
+- **Phase 1 — shell Moodle :** fait en LOCAL.
+- **Phase 2 — missions Python :** P0–P6 sont maintenant dans le pack Moodle bilingue.
+- **Phase 3 — état Moodle :** fait pour tentatives, réussite, reprise multi-device et completion.
+- **Phase 4 — suivi enseignant :** première projection en lecture seule implémentée ; validation navigateur encore à faire.
+- **Prochaine frontière :** promotion réelle sur STAGING via Promoter, validation 7/7, puis connexion Roads sur une preuve Moodle stable.
 
-### Phase 1 — shell Moodle
-Installer `mod_lgcplayground` en LOCAL et vérifier :
-- ajout d'activité ;
-- permissions ;
-- rendu React/TypeScript ;
-- paramètres track/mission pack.
-
-### Phase 2 — une vraie mission
-Migrer une seule mission Python complète :
-- code de départ ;
-- worker Pyodide ;
-- Run ;
-- validation ;
-- débrief.
-
-### Phase 3 — état Moodle
-Ajouter :
-- table de progression/tentatives ;
-- endpoints ;
-- reprise multi-device ;
-- règle de completion explicite.
-
-### Phase 4 — suivi enseignant et catalogue
-Ajouter une projection enseignant en lecture seule à partir de la progression Moodle, puis migrer progressivement les autres missions et connecter Roads sur une preuve Moodle stable.
-
-La première projection enseignant doit rester volontairement sobre : missions réussies, progression, tentatives de validation et dernière activité. Elle ne stocke ni n’expose le code élève ni stdout.
+La vue enseignant reste volontairement sobre : missions réussies, progression, tentatives de validation et dernière activité. Elle ne stocke ni n'expose le code élève ni stdout.
 
 ## Environnements
 

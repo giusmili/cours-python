@@ -46,9 +46,9 @@ Cible actuelle : `https://moodle-dev.kiwinokoto.com`.
 - La CI produit `lgcplayground-staging-<SHA40>` avec ZIP Moodle autonome, manifest et `SHA256SUMS`.
 - Le ZIP doit contenir les assets Pyodide ; aucun build npm ne doit être requis sur STAGING.
 - Vérifier le SHA-256 avant installation.
-- Première option : installateur Moodle natif sur STAGING. Ne pas élargir un worker MoodleOps ou un compte VPS juste pour contourner un problème d'accès.
+- Voie normale : Moodle Extension Promoter avec l'artefact exact issu d'une CI verte. L'installateur Moodle natif n'est qu'un fallback borné, pas un second pipeline.
 - Si SSH est utilisé, vérifier explicitement `$CFG->wwwroot`, le marqueur STAGING et la destination `mod/lgcplayground` avant mutation.
-- Après installation, smoke test avec élève nommé : exécution, validation, reload/reprise, completion, puis au moins P0 → P1.
+- Après installation, smoke test avec élève nommé : exécution, validation, reload/reprise et completion ; pour le pack courant, viser ensuite P0 → P6 et vérifier la vue enseignant.
 - Ne jamais faire de refresh STAGING destructif comme simple rollback de plugin.
 - Procédure détaillée : `docs/terrain-de-jeu/11_deploiement_staging.md`.
 
@@ -69,7 +69,7 @@ Le broker root-owned acquiert lui-même ses leases et déploie uniquement `kevin
 Le cœur institutionnel devient une activité Moodle :
 - composant : `mod_lgcplayground` ;
 - chemin repo : `moodle-plugin/mod/lgcplayground/` ;
-- PHP/Moodle : permissions, instance, état institutionnel, future completion/progression/endpoints ;
+- PHP/Moodle : permissions, instance, progression/completion, endpoints de persistance, backup/restore et projection enseignant ;
 - Moodle 5.2 React/TypeScript : UI interactive.
 
 ### Runtimes élève

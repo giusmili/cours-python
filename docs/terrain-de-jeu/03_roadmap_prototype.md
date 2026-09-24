@@ -40,14 +40,29 @@ Application locale :
 - W6 État dynamique — DOM + variable + condition.
 - W7 Tableau interactif — tableaux + boucles + DOM.
 
-## Phase 4 — progression
-MVP : état local/localStorage, sans compte séparé.
+## Phase 4 — progression Moodle
+Réalisé :
+- progression/tentatives par utilisateur dans Moodle ;
+- reprise multi-device ;
+- réussite monotone par mission ;
+- completion automatique de l'activité ;
+- Privacy API ;
+- backup/restore ;
+- première vue enseignant en lecture seule.
 
-Ensuite : persistance serveur, identité Moodle/LTI, déblocage enseignant, éventuelle remontée de résultats.
+À poursuivre :
+- filtres groupe/cohorte et analytics enseignant seulement s'ils répondent à un besoin réel ;
+- politique de preuve explicite avec Roads ;
+- grading uniquement si le besoin pédagogique le justifie.
 
 ## Phase 5 — déploiement
-Après validation locale :
-Git -> build -> service/conteneur Node -> Traefik -> sous-domaine dédié.
+Architecture actuelle :
+- GitHub est la source de vérité ;
+- la CI construit le plugin Moodle autonome avec Pyodide ;
+- Moodle Extension Promoter est la voie normale vers STAGING ;
+- le prototype Next.js reste une preview protégée séparée.
+
+Gate restant : première promotion réelle de `mod_lgcplayground` par Promoter sur STAGING, puis smoke test Moodle du parcours courant. Aucun PROD pendant cette phase.
 
 ## Critères de réussite
 - objectif compris sans longue explication ;

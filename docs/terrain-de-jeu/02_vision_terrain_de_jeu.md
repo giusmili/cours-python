@@ -43,11 +43,11 @@ Web : modifier HTML/CSS et voir immédiatement le résultat.
 Pas de second CourseSpec. Le terrain de jeu utilise seulement une structure interne minimale : id, parcours, prérequis, scénario, fichiers de départ, tests, indices, débrief, bonus, chaînes FR/EN.
 
 ## Moodle
-Moodle reste la colonne vertébrale : identité, inscriptions, cours, compétences, notes.
+Moodle reste la colonne vertébrale : identité, inscriptions, cours, capacités, completion et état pédagogique.
 
-Le terrain de jeu gère : éditeur, exécution/preview, tests, feedback, missions et progression fine.
+Le cœur institutionnel est désormais une activité Moodle native, `mod_lgcplayground`. Le terrain de jeu gère l'éditeur, l'exécution/preview, les tests, le feedback et les missions ; Moodle possède la progression persistée et la completion.
 
-À terme : LTI/API plutôt qu'un second système de comptes.
+Le prototype Next.js reste un harnais/preview. Un service externe n'est envisagé que pour de futurs labs que le navigateur ne peut pas exécuter proprement ; il ne doit pas créer un second système de comptes.
 
 ## Sécurité
 - Python débutant : exécution navigateur isolée si possible.

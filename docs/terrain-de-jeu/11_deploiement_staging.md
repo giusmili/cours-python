@@ -91,12 +91,16 @@ Gate minimal :
 7. faire au moins un passage P0 → P1 pour vérifier le déverrouillage ;
 8. vérifier qu'il n'y a pas d'erreur visible navigateur.
 
-Gate de démo recommandé :
-- P0 → P4 ;
-- 5/5 ;
+Gate de démo recommandé pour le pack courant :
+- P0 → P6 ;
+- 7/7 ;
 - parcours complet ;
 - progression restaurée après nouveau contexte navigateur ;
+- ouvrir la vue **Suivi des apprenants** avec un compte enseignant ;
+- vérifier que l'enseignant voit progression/tentatives/dernière activité sans code source ni stdout ;
 - aucune erreur console/page.
+
+Ce gate 7/7 est la cible actuelle ; le dernier gate navigateur déjà confirmé reste le checkpoint P0 → P4.
 
 ## Données et niveau de preuve
 
