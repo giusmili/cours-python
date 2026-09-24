@@ -32,14 +32,17 @@ Le ZIP historique reste disponible pendant la transition. La release Promoter po
 
 Promoter ne doit jamais lancer la génération Pyodide ou un build npm spécifique au Playground sur le serveur STAGING. Tous les assets nécessaires doivent déjà être présents dans l artefact produit par la CI Playground.
 
-## Tant que le worker Promoter n est pas installé sur STAGING
+## État actuel du contrat — 24 septembre 2026
 
-- conserver la procédure STAGING actuelle ;
-- ne pas élargir MoodleOps avec un runner Playground spécifique ;
-- ne pas ajouter un nouveau transport SSH ou une nouvelle gestion des safety markers dans le Playground ;
-- si un besoin de déploiement générique apparaît, le consigner pour Promoter au lieu de le réimplémenter ici ;
-- aucun PROD.
+Le worker Moodle Extension Promoter est maintenant installé sur le Moodle STAGING et son contrat générique a été validé avec Roads.
 
-Le dépôt `La-Grande-Classe-R-D/moodle-extension-promoter` est enrôlé dans AgentCtl et sa V1 est fusionnée dans `main`. Le worker STAGING n est pas encore installé : cette installation est explicitement reportée à la VM de travail, sans transporter de clé privée depuis Mint.
+Promoter sait distinguer trois états :
+- `install` : extension absente ;
+- `identical` : extension déjà identique ;
+- `upgrade` : version Moodle entrante strictement supérieure à la version installée.
 
-Le prochain test d intégration réel consiste donc à télécharger la release Promoter produite par la CI Playground, la valider avec Promoter sur la VM, puis exécuter `prepare`/`apply` sur Moodle STAGING après installation du worker.
+Une divergence à version égale et un downgrade restent refusés. L'approbation est liée à l'action observée, puis l'upgrade remplace l'arbre de code de façon atomique avant d'exécuter l'upgrade Moodle et de purger les caches.
+
+La release Playground produite par la CI est déjà conforme au contrat Promoter (`manifest.json` + `plugin/`) et doit continuer à embarquer tous les assets Pyodide. Promoter ne construit rien de spécifique au Playground sur STAGING.
+
+Le prochain test d'intégration Playground consiste à prendre l'artefact exact d'un commit vert de `kevin/missions`, vérifier ses hashes, puis exécuter `prepare` / `apply` contre le worker STAGING. Aucun runner Playground spécifique ne doit être ajouté dans MoodleOps et aucun PROD n'est autorisé.

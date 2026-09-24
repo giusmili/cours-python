@@ -129,8 +129,10 @@ Toujours indiquer les tests réellement exécutés et les limites.
 
 ### Frontière de promotion des extensions Moodle
 
-Le Playground est un futur consommateur de La-Grande-Classe-R-D/moodle-extension-promoter pour la promotion de mod_lgcplayground vers un Moodle existant.
+Le Playground est un consommateur de La-Grande-Classe-R-D/moodle-extension-promoter pour la promotion de mod_lgcplayground vers un Moodle existant.
 
-Ne pas créer ici un nouveau moteur de déploiement générique, de safety markers ou de gestion d environnements. Conserver le build autonome actuel, notamment les assets Pyodide, et faire évoluer plus tard seulement le contrat de l artefact vers le format Promoter.
+Ne pas créer ici un nouveau moteur de déploiement générique, de safety markers ou de gestion d'environnements. Conserver le build autonome actuel, notamment les assets Pyodide. La CI produit déjà en parallèle une release Promoter générique (manifest.json + plugin/).
+
+Le worker Promoter STAGING est désormais installé. Les promotions réelles doivent utiliser son contrat install / identical / upgrade forward-only ; une divergence à version égale ou un downgrade doivent rester refusés. Aucun PROD.
 
 MoodleOps reste responsable du cycle de vie des environnements. Course Factory reste responsable des cours. Roads reste responsable des parcours. Voir docs/terrain-de-jeu/12_extension_promotion_contract.md.

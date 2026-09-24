@@ -87,7 +87,6 @@ export const missions: Mission[] = [
       en: "Print exactly SYSTEM ONLINE.",
     },
     starter: `# Mission 0
-# Fais afficher exactement : SYSTEM ONLINE
 
 `,
     hints: [
@@ -422,7 +421,7 @@ print(f"OFFLINE: {offline_count}")
   }
 
   .status-card {
-    /* À toi de jouer */
+    /* TODO */
   }
 </style>
 
@@ -522,7 +521,7 @@ print(f"OFFLINE: {offline_count}")
   }
 
   .panel-grid {
-    /* Les cartes doivent se placer côte à côte */
+    /* TODO */
   }
 
   .panel {
@@ -633,7 +632,7 @@ print(f"OFFLINE: {offline_count}")
   const button = document.getElementById("activate");
   const status = document.getElementById("status");
 
-  // Fais réagir le bouton ici.
+  // TODO
 </script>`,
     hints: [
       {

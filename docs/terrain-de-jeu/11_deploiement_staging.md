@@ -51,27 +51,19 @@ Les dossiers de développement `tests/` et `tools/` ne sont pas inclus dans le p
 
 ## Installation STAGING recommandée
 
-Pour une première installation, le chemin le plus simple et le plus borné est l'installateur Moodle lui-même.
+La voie normale est désormais **Moodle Extension Promoter**.
 
-1. Ouvrir le run CI vert du commit exact de `kevin/missions`.
+1. Partir d'un commit exact de `kevin/missions` dont la CI **Terrain de jeu CI** est verte.
 2. Télécharger l'artefact `lgcplayground-staging-<SHA40>`.
-3. Vérifier localement :
+3. Vérifier `SHA256SUMS`.
+4. Utiliser la release Promoter contenue dans l'artefact (`manifest.json` + `plugin/`).
+5. Exécuter `prepare` sur la cible STAGING et vérifier l'identité du composant, la destination `mod/lgcplayground`, la version et l'état annoncé (`install`, `identical` ou `upgrade`).
+6. N'appliquer que l'approbation issue de ce `prepare`.
+7. Laisser Promoter exécuter l'upgrade Moodle et la purge de caches.
 
-```bash
-sha256sum -c SHA256SUMS
-```
+Pour une mise à jour, la version Moodle du plugin doit être strictement supérieure à la version installée. Une divergence à version égale ou un downgrade doivent échouer fermement.
 
-4. Ouvrir **Site administration → Plugins → Install plugins** sur le STAGING.
-5. Envoyer `lgcplayground-<SHA12>.zip`.
-6. Vérifier avant confirmation :
-   - type : activité / module ;
-   - composant : `mod_lgcplayground` ;
-   - répertoire : `mod/lgcplayground` ;
-   - la page est bien sur `moodle-dev.kiwinokoto.com`.
-7. Laisser Moodle exécuter l'upgrade.
-8. Purger les caches si Moodle ne le fait pas automatiquement.
-
-Ne jamais utiliser ce ZIP sur PROD pendant la phase actuelle.
+L'installateur Moodle natif reste un fallback borné pour une première installation manuelle si le transport Promoter est indisponible, mais il ne doit pas redevenir un second pipeline de déploiement.
 
 ## Alternative SSH
 
@@ -123,12 +115,16 @@ Après installation DB :
 - utiliser la procédure d'uninstall Moodle explicite seulement si l'on décide réellement de retirer le plugin et ses données ;
 - le refresh complet STAGING depuis PROD est un outil destructif de dernier recours, pas un rollback de plugin.
 
-## État au 23 septembre 2026
+## État des gates
 
-- plugin LOCAL : validé ;
-- version UI : `0.6.0-alpha` ;
-- parcours Python P0–P4 : vert ;
-- PHPUnit : 10 tests / 54 assertions avant la tranche backup/restore, puis backup/restore ajouté sur `kevin/missions` par la passe suivante ;
-- build STAGING autonome : automatisé par GitHub CI ;
-- STAGING Moodle : **pas encore installé** au moment de ce checkpoint ;
-- PROD : inchangé.
+Checkpoint historique du 23 septembre :
+- plugin LOCAL validé ;
+- version UI `0.6.0-alpha` ;
+- parcours Python P0–P4 vert ;
+- build STAGING autonome automatisé par GitHub CI.
+
+Au 24 septembre :
+- worker Promoter STAGING installé et validé sur le contrat générique ;
+- artefact Playground compatible Promoter déjà produit par la CI ;
+- validation d'une promotion Playground réelle via Promoter encore à exécuter ;
+- PROD inchangé et hors périmètre.

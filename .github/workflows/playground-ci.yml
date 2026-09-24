@@ -5,6 +5,10 @@ on:
     branches:
       - kevin/missions
       - "dev/**"
+    paths:
+      - "terrain-de-jeu/**"
+      - "moodle-plugin/mod/lgcplayground/**"
+      - ".github/workflows/playground-ci.yml"
   pull_request:
     paths:
       - "terrain-de-jeu/**"
@@ -14,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: playground-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify-standalone:
@@ -80,7 +88,7 @@ jobs:
           test -s moodle-plugin/mod/lgcplayground/pyodide-worker.mjs
           test -s moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
   package-moodle-plugin:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/kevin/missions'
     needs:
       - verify-moodle-plugin
     runs-on: ubuntu-latest

@@ -19,7 +19,7 @@
         "fr": "Fais afficher exactement SYSTEM ONLINE.",
         "en": "Print exactly SYSTEM ONLINE."
       },
-      "starter": "# Mission 0\n# Fais afficher exactement : SYSTEM ONLINE\n\n",
+      "starter": "# Mission 0\n\n",
       "hints": [
         {
           "fr": "La fonction print() écrit du texte dans la sortie standard.",

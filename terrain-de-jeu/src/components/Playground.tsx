@@ -62,6 +62,11 @@ const ui = {
       "Python s’exécute dans un worker isolé du navigateur : aucun code n’est envoyé au serveur, l’accès réseau est coupé et une boucle infinie est interrompue.",
     saved: "Brouillon sauvegardé localement",
     resetConfirm: "Le code de départ de cette mission a été restauré.",
+    language: "Langue",
+    missionPath: "Parcours de missions",
+    pythonRuntime: "Python · navigateur",
+    sandboxedHtml: "HTML isolé",
+    webPreview: "Aperçu Web",
   },
   en: {
     eyebrow: "Dev Playground",
@@ -100,6 +105,11 @@ const ui = {
       "Python runs in an isolated browser worker: no code is sent to the server, network access is disabled and runaway code is interrupted.",
     saved: "Draft saved locally",
     resetConfirm: "The mission starter code has been restored.",
+    language: "Language",
+    missionPath: "Mission path",
+    pythonRuntime: "Python · browser",
+    sandboxedHtml: "Sandboxed HTML",
+    webPreview: "Web preview",
   },
 } as const;
 
@@ -359,7 +369,7 @@ export function Playground() {
           <p className="subtitle">{t.subtitle}</p>
         </div>
 
-        <div className="locale-switch" aria-label="Language">
+        <div className="locale-switch" aria-label={t.language}>
           {(["fr", "en"] as Locale[]).map((value) => (
             <button
               key={value}
@@ -410,7 +420,7 @@ export function Playground() {
       </section>
 
       <section className="learning-layout">
-        <aside className="mission-path" aria-label="Mission path">
+        <aside className="mission-path" aria-label={t.missionPath}>
           <div className="path-header">
             <span>{track === "python" ? t.python : t.web}</span>
             <strong>{progress}%</strong>
@@ -554,8 +564,8 @@ export function Playground() {
                 </span>
                 <span>
                   {currentMission.track === "python"
-                    ? "Python · browser"
-                    : "sandboxed HTML"}
+                    ? t.pythonRuntime
+                    : t.sandboxedHtml}
                 </span>
               </div>
 
@@ -572,7 +582,7 @@ export function Playground() {
                 </>
               ) : (
                 <iframe
-                  title="Web preview"
+                  title={t.webPreview}
                   sandbox="allow-scripts"
                   srcDoc={iframeDoc}
                 />
