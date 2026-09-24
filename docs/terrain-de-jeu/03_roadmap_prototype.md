@@ -21,6 +21,17 @@ Application locale :
 - débrief ;
 - progression locale.
 
+## Phase 1 bis — ergonomie de l'éditeur
+À ajouter après stabilisation du squelette :
+- coloration syntaxique adaptée au langage courant (Python, HTML, CSS, JavaScript) ;
+- numéros de ligne toujours visibles dans l'éditeur ;
+- remplacement du `textarea` actuel par un vrai éditeur de code, avec **CodeMirror 6** comme candidat privilégié ;
+- garder Shiki pour les blocs de code non éditables (consignes, débriefs, exemples) si un rendu VS Code est utile ;
+- conserver le runtime actuel séparé de l'éditeur : l'éditeur améliore l'UX, il ne change pas l'exécution Pyodide ni le sandbox Web ;
+- tester clavier, sélection, copier/coller, mobile et FR/EN avant généralisation.
+
+Critère visuel minimal : à langage différent, coloration différente immédiatement visible, avec gouttière de numéros de ligne stable.
+
 ## Phase 2 — mini-parcours Python
 - P0 Réveiller le terminal — `print`, chaînes, erreurs simples.
 - P1 Réparer le profil — variables, types, f-string.
