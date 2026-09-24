@@ -17,7 +17,7 @@ push kevin/missions
   -> playground-dev.lagrandeclasse.fr
 ```
 
-Le VPS vérifie le HEAD environ une fois par minute. Il ne contacte l'API Actions que si ce HEAD diffère du SHA déjà déployé ou déjà demandé.
+Le VPS vérifie le HEAD environ toutes les deux minutes. Il ne contacte l'API Actions que si ce HEAD diffère du SHA déjà déployé ou déjà demandé.
 
 Le broker revérifie ensuite lui-même que :
 - le SHA demandé est toujours le HEAD de `kevin/missions` ;

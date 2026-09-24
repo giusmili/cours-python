@@ -3,7 +3,7 @@ Description=Poll for a new CI-green Playground preview commit
 
 [Timer]
 OnBootSec=45s
-OnUnitActiveSec=60s
+OnUnitActiveSec=120s
 AccuracySec=5s
 RandomizedDelaySec=5s
 Unit=playground-dev-auto-request.service
