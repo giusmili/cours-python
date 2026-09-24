@@ -56,6 +56,9 @@ $templatecontext = [
         JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR,
     ),
     'loading' => get_string('loading', 'mod_lgcplayground'),
+    'showprogressreport' => has_capability('mod/lgcplayground:viewprogress', $context),
+    'progressreporturl' => (new moodle_url('/mod/lgcplayground/report.php', ['id' => $cm->id]))->out(false),
+    'progressreportlabel' => get_string('progressreport', 'mod_lgcplayground'),
 ];
 
 echo $OUTPUT->header();

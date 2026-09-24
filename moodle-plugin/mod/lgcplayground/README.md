@@ -37,10 +37,12 @@ Implemented in the current progress slice:
 - explicit Moodle automatic completion when all required missions are passed;
 - privacy metadata/export/deletion support for stored progress;
 - Moodle backup/restore for activity configuration and, when user data is included, learner mission progress.
+- a capability-gated, read-only teacher progress report showing missions passed, completion percentage, validation attempts and latest attempt time without storing learner code or stdout.
 
 Not implemented yet:
 - migration of the remaining mission catalogue;
 - grading;
+- cohort/group filters and richer teacher analytics;
 - Roads binding automation.
 
 ## Validation status

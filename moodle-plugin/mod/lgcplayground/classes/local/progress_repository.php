@@ -135,4 +135,62 @@ final class progress_repository {
         $passedids = $DB->get_fieldset_sql($sql, $params);
         return count(array_unique($passedids)) === count($missionids);
     }
+    /**
+     * Summarise progress for selected learners and current mission ids.
+     *
+     * @param int $playgroundid
+     * @param int[] $userids
+     * @param string[] $missionids
+     * @return array<int, array{attempts:int, passed:int, lastattempt:int}>
+     */
+    public static function summaries_for_users(
+        int $playgroundid,
+        array $userids,
+        array $missionids,
+    ): array {
+        global $DB;
+
+        $userids = array_values(array_unique(array_filter(
+            array_map('intval', $userids),
+            static fn(int $userid): bool => $userid > 0,
+        )));
+        $missionids = array_values(array_unique(array_filter(
+            $missionids,
+            static fn(mixed $missionid): bool => is_string($missionid) && $missionid !== '',
+        )));
+
+        if (!$userids || !$missionids) {
+            return [];
+        }
+
+        [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'reportuser');
+        [$missionsql, $missionparams] = $DB->get_in_or_equal($missionids, SQL_PARAMS_NAMED, 'reportmission');
+        $params = [
+            'playgroundid' => $playgroundid,
+            ...$userparams,
+            ...$missionparams,
+        ];
+        $sql = "SELECT userid,
+                       SUM(attempts) AS attempts,
+                       SUM(passed) AS passed,
+                       MAX(timelastattempt) AS lastattempt
+                  FROM {lgcplayground_progress}
+                 WHERE playgroundid = :playgroundid
+                   AND userid {$usersql}
+                   AND missionid {$missionsql}
+              GROUP BY userid";
+
+        $records = $DB->get_records_sql($sql, $params);
+        $summaries = [];
+        foreach ($records as $record) {
+            $summaries[(int)$record->userid] = [
+                'attempts' => (int)$record->attempts,
+                'passed' => (int)$record->passed,
+                'lastattempt' => (int)$record->lastattempt,
+            ];
+        }
+
+        return $summaries;
+    }
+
 }

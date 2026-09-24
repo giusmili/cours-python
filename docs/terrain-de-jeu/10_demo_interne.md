@@ -85,6 +85,18 @@ Phrase simple :
 
 > « Le navigateur fait tourner Python ; Moodle garde l'état pédagogique. »
 
+### Option — montrer la vue enseignant — 30 s
+
+Avec un compte enseignant, ouvrir **Suivi des apprenants** depuis l'activité.
+
+Montrer uniquement :
+- missions réussies / total ;
+- barre de progression ;
+- nombre de tentatives de validation ;
+- dernière tentative.
+
+Préciser que cette vue n'enregistre ni le code source ni la sortie console des apprenants. C'est une projection pédagogique Moodle, pas un outil de surveillance du travail écran par écran.
+
 ### 5. Ouvrir l'architecture — 60 s
 
 Seulement si le public est intéressé par la technique.

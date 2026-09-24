@@ -4,6 +4,11 @@
     Moodle-native host for the interactive Playground application.
 }}
 <div class="mod-lgcplayground-shell">
+    {{#showprogressreport}}
+    <div class="mb-3 text-end">
+        <a class="btn btn-outline-secondary" href="{{progressreporturl}}">{{progressreportlabel}}</a>
+    </div>
+    {{/showprogressreport}}
     {{#react}}
     {
         "component": "@moodle/lms/mod_lgcplayground/view",

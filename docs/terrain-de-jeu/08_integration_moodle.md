@@ -158,8 +158,10 @@ Ajouter :
 - reprise multi-device ;
 - règle de completion explicite.
 
-### Phase 4 — catalogue
-Migrer progressivement les autres missions et connecter Roads sur une preuve Moodle stable.
+### Phase 4 — suivi enseignant et catalogue
+Ajouter une projection enseignant en lecture seule à partir de la progression Moodle, puis migrer progressivement les autres missions et connecter Roads sur une preuve Moodle stable.
+
+La première projection enseignant doit rester volontairement sobre : missions réussies, progression, tentatives de validation et dernière activité. Elle ne stocke ni n’expose le code élève ni stdout.
 
 ## Environnements
 

@@ -147,4 +147,53 @@ final class progress_repository_test extends advanced_testcase {
             [],
         ));
     }
+    public function test_summaries_for_users_aggregate_only_current_missions(): void {
+        [$course, $activity, $student] = $this->make_fixture();
+        $otherstudent = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'python-00-terminal',
+            false,
+        );
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'python-00-terminal',
+            true,
+        );
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'python-01-variables',
+            true,
+        );
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$student->id,
+            'stale-mission-id',
+            true,
+        );
+        progress_repository::record_attempt(
+            (int)$activity->id,
+            (int)$otherstudent->id,
+            'python-00-terminal',
+            false,
+        );
+
+        $summaries = progress_repository::summaries_for_users(
+            (int)$activity->id,
+            [(int)$student->id, (int)$otherstudent->id],
+            ['python-00-terminal', 'python-01-variables'],
+        );
+
+        $this->assertSame(3, $summaries[(int)$student->id]['attempts']);
+        $this->assertSame(2, $summaries[(int)$student->id]['passed']);
+        $this->assertGreaterThan(0, $summaries[(int)$student->id]['lastattempt']);
+
+        $this->assertSame(1, $summaries[(int)$otherstudent->id]['attempts']);
+        $this->assertSame(0, $summaries[(int)$otherstudent->id]['passed']);
+    }
+
 }
