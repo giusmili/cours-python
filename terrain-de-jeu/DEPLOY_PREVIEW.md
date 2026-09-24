@@ -47,7 +47,7 @@ cd terrain-de-jeu
 sudo ./ops/install-playground-dev-broker
 ```
 
-L'installateur crée si nécessaire `/etc/playground-dev/source.env`, installe le poller et active `playground-dev-auto-request.timer`.
+L'installateur crée si nécessaire `/etc/playground-dev-source.env`, installe le poller et active `playground-dev-auto-request.timer`.
 
 Configuration publique par défaut :
 
@@ -55,7 +55,7 @@ Configuration publique par défaut :
 PLAYGROUND_REPO_URL=https://github.com/giusmili/cours-python.git
 PLAYGROUND_BRANCH=kevin/missions
 PLAYGROUND_GIT_SSH_KEY=
-PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev-github-known_hosts
 PLAYGROUND_GITHUB_TOKEN_FILE=
 ```
 
@@ -86,9 +86,9 @@ Les host keys GitHub peuvent être écrites depuis l'API HTTPS GitHub :
 ```bash
 curl -fsSL https://api.github.com/meta | python3 -c \
 'import json,sys; [print("github.com "+k) for k in json.load(sys.stdin)["ssh_keys"]]' \
-| sudo tee /etc/playground-dev/github_known_hosts >/dev/null
-sudo chown root:root /etc/playground-dev/github_known_hosts
-sudo chmod 0644 /etc/playground-dev/github_known_hosts
+| sudo tee /etc/playground-dev-github-known_hosts >/dev/null
+sudo chown root:root /etc/playground-dev-github-known_hosts
+sudo chmod 0644 /etc/playground-dev-github-known_hosts
 ```
 
 Stocker le token Actions read-only dans un fichier root-only, par exemple :
@@ -103,7 +103,7 @@ Puis configurer :
 PLAYGROUND_REPO_URL=git@github.com:giusmili/cours-python.git
 PLAYGROUND_BRANCH=kevin/missions
 PLAYGROUND_GIT_SSH_KEY=/home/moodle-agent/.ssh/playground-dev-readonly
-PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev-github-known_hosts
 PLAYGROUND_GITHUB_TOKEN_FILE=/etc/playground-dev/github-actions-read.token
 ```
 

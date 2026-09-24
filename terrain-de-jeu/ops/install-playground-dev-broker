@@ -17,7 +17,7 @@ readonly USER_AGENTCTL_CONFIG="$DEPLOY_HOME/.config/agentctl-worker/env"
 readonly PREVIEW_CONFIG_DIR="$DEPLOY_HOME/.config/playground-dev"
 readonly PREVIEW_ENV="$PREVIEW_CONFIG_DIR/env"
 readonly ROOT_PREVIEW_ENV='/etc/playground-dev/preview.env'
-readonly SOURCE_ENV='/etc/playground-dev/source.env'
+readonly SOURCE_ENV='/etc/playground-dev-source.env'
 
 id "$DEPLOY_USER" >/dev/null 2>&1 || {
   echo "Missing user: $DEPLOY_USER" >&2
@@ -60,7 +60,7 @@ if [ ! -f "$SOURCE_ENV" ]; then
 PLAYGROUND_REPO_URL=https://github.com/giusmili/cours-python.git
 PLAYGROUND_BRANCH=kevin/missions
 PLAYGROUND_GIT_SSH_KEY=
-PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev/github_known_hosts
+PLAYGROUND_GIT_KNOWN_HOSTS=/etc/playground-dev-github-known_hosts
 PLAYGROUND_GITHUB_TOKEN_FILE=
 EOF
 fi

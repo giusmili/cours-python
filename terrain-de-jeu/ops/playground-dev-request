@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 readonly REQUEST_DIR='/run/playground-dev'
 readonly REQUEST="$REQUEST_DIR/deploy.request"
-readonly SOURCE_CONFIG='/etc/playground-dev/source.env'
+readonly SOURCE_CONFIG='/etc/playground-dev-source.env'
 
 fail() { printf '[playground-request] ERROR: %s\n' "$*" >&2; exit 1; }
 
@@ -15,7 +15,7 @@ configure_source() {
   REPO_URL="${PLAYGROUND_REPO_URL:-https://github.com/giusmili/cours-python.git}"
   BRANCH="${PLAYGROUND_BRANCH:-kevin/missions}"
   GIT_SSH_KEY="${PLAYGROUND_GIT_SSH_KEY:-}"
-  GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev/github_known_hosts}"
+  GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev-github-known_hosts}"
 
   case "$REPO_URL" in
     'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;

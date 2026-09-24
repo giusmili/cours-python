@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly SOURCE_CONFIG='/etc/playground-dev/source.env'
+readonly SOURCE_CONFIG='/etc/playground-dev-source.env'
 readonly REQUEST='/run/playground-dev/deploy.request'
 readonly STATE_DIR='/var/lib/playground-dev'
 readonly DEPLOYED_STATE="$STATE_DIR/deployed_commit"
@@ -18,7 +18,7 @@ source "$SOURCE_CONFIG"
 REPO_URL="${PLAYGROUND_REPO_URL:-https://github.com/giusmili/cours-python.git}"
 BRANCH="${PLAYGROUND_BRANCH:-kevin/missions}"
 GIT_SSH_KEY="${PLAYGROUND_GIT_SSH_KEY:-}"
-GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev/github_known_hosts}"
+GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev-github-known_hosts}"
 GITHUB_TOKEN_FILE="${PLAYGROUND_GITHUB_TOKEN_FILE:-}"
 
 case "$REPO_URL" in
