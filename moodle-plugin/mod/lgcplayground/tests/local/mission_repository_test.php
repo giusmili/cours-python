@@ -26,6 +26,8 @@ final class mission_repository_test extends advanced_testcase {
                 'python-02-types',
                 'python-03-conditions',
                 'python-04-for-loop',
+                'python-05-functions',
+                'python-06-final-incident',
             ],
             mission_repository::ids_for_track($pack, 'python'),
         );

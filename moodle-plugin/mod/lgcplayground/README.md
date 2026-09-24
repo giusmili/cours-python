@@ -22,9 +22,9 @@ Implemented:
 - add/update/delete callbacks;
 - capabilities and activity creation form;
 - Moodle-native React/TypeScript mount point;
-- bilingual Python missions P0–P4 loaded from Moodle/PHP;
+- bilingual Python missions P0–P6 loaded from Moodle/PHP;
 - isolated browser Python runtime (Web Worker + self-hosted Pyodide core assets);
-- multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P4;
+- multi-mission navigation plus Run, output, validation, hints, debrief and bonus for P0–P6;
 - sequential mission unlocking, visible track progress and a clear Code → Run → Validate workflow;
 - Ctrl/⌘+Enter shortcut for execution and a demo-friendly runtime/sync status bar;
 - 5 s runaway-code timeout and blocked browser network capability in the Python worker.
@@ -100,12 +100,14 @@ The LOCAL recipe has a dedicated PHPUnit prefix/dataroot and the `en_AU.UTF-8` l
 
 ## Multi-mission checkpoint
 
-The first Python pack now contains five small missions:
+The first Python pack now contains seven small missions:
 - P0: execution workflow and `print()`;
 - P1: variables, `str` and `int`;
 - P2: `float`, `bool` and `type()`;
 - P3: conditions and comparisons;
-- P4: `for` and `range()`.
+- P4: `for` and `range()`;
+- P5: reusable functions, parameters and `return`;
+- P6: final incident combining list + loop + condition + function.
 
 The Moodle React shell:
 - renders the complete mission rail;
@@ -117,7 +119,7 @@ The Moodle React shell:
 Named-student Chromium E2E on LOCAL:
 `P0 -> P1 -> P2 -> fresh browser context` is green, with 3/3 progress restored and Moodle `completionstate=1`.
 
-The expanded P0–P4 UI was then validated in Chromium with LOCAL guest access: 5/5 missions execute and validate in sequence, the track-complete state appears, and the browser reports no console/page errors. The persistence/completion semantics for the expanded five-mission pack are covered by the PHPUnit suite.
+The P0–P4 UI checkpoint was validated in Chromium with LOCAL guest access: 5/5 missions executed and validated in sequence, the track-complete state appeared, and the browser reported no console/page errors. P5–P6 were added afterwards as data-only mission-pack content; repository/CI packaging gates cover them, while a fresh browser E2E of the full 7/7 sequence remains the next runtime acceptance gate. Completion semantics stay dynamic over the current mission ids.
 
 ### Pyodide assets in LOCAL
 

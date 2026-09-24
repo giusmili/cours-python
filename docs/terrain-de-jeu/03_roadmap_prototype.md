@@ -26,9 +26,9 @@ Application locale :
 - P1 Réparer le profil — variables, types, f-string.
 - P2 Contrôle d'accès — booléens, comparaisons, conditions.
 - P3 Scanner les événements — boucles, `range`, compteurs.
-- P4 Nettoyer les données — chaînes/listes.
-- P5 Construire un outil — fonctions, paramètres, `return`.
-- P6 Incident final — combinaison.
+- P4 Scanner les secteurs — boucle `for`, `range`.
+- P5 Calibrer le niveau de risque — fonctions, paramètres, `return`.
+- P6 Résoudre l’incident final — liste + boucle + condition + fonction.
 
 ## Phase 3 — mini-parcours Web
 - W0 Faire apparaître le signal — HTML minimal.

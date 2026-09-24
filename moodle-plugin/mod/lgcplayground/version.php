@@ -9,7 +9,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_lgcplayground';
-$plugin->version = 2026092401;
+$plugin->version = 2026092402;
 $plugin->requires = 2026042003.01;
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.7.0-alpha';
+$plugin->release = '0.8.0-alpha';
