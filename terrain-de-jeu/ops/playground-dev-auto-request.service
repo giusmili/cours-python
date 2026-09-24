@@ -2,7 +2,7 @@
 Description=Queue CI-green Playground preview deployments
 Wants=network-online.target
 After=network-online.target
-ConditionPathExists=/etc/playground-dev/source.env
+ConditionPathExists=/etc/playground-dev-source.env
 
 [Service]
 Type=oneshot
