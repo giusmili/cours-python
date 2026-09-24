@@ -8,6 +8,7 @@ ConditionPathExists=/etc/playground-dev-source.env
 Type=oneshot
 User=root
 Group=root
+SupplementaryGroups=moodle-agent
 ExecStart=/usr/local/libexec/playground-dev-auto-request
 UMask=0027
 NoNewPrivileges=true

@@ -36,6 +36,8 @@ Il build une image avec le Dockerfile root-owned, smoke-teste un candidat, swapp
 
 GitHub Actions ne reçoit aucun accès SSH au VPS.
 
+Le poller reste `root` pour pouvoir lire le futur token Actions root-only, mais il ne reçoit aucune capability Linux. Il obtient uniquement le groupe supplémentaire `moodle-agent`, strictement nécessaire pour créer la requête dans `/run/playground-dev` (`0770 moodle-agent:moodle-agent`).
+
 Le broker ne lit pas le Compose versionné pour déployer. Le Dockerfile de déploiement est copié root-owned lors de l'installation du broker.
 
 ## Installation / mise à jour du broker
