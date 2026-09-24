@@ -22,46 +22,63 @@ type CodeEditorProps = {
 
 const syntaxColors = HighlightStyle.define([
   {
-    tag: [tags.keyword, tags.controlKeyword, tags.operatorKeyword],
-    color: "var(--accent-2)",
-  },
-  {
-    tag: [tags.string, tags.special(tags.string)],
-    color: "var(--accent)",
-  },
-  {
-    tag: [tags.number, tags.bool, tags.atom],
-    color: "var(--warning)",
-  },
-  {
-    tag: [tags.comment, tags.meta],
-    color: "var(--muted)",
+    tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment],
+    color: "#6a9955",
     fontStyle: "italic",
   },
   {
     tag: [
-      tags.typeName,
-      tags.className,
-      tags.tagName,
-      tags.attributeName,
-      tags.propertyName,
+      tags.keyword,
+      tags.controlKeyword,
+      tags.operatorKeyword,
+      tags.definitionKeyword,
+      tags.moduleKeyword,
     ],
-    color: "var(--text-soft)",
+    color: "#c586c0",
   },
   {
-    tag: [
-      tags.definition(tags.variableName),
-      tags.function(tags.variableName),
-      tags.labelName,
-    ],
-    color: "var(--accent-2)",
+    tag: [tags.string, tags.special(tags.string), tags.regexp],
+    color: "#ce9178",
+  },
+  {
+    tag: [tags.number, tags.bool, tags.atom],
+    color: "#b5cea8",
+  },
+  {
+    tag: [tags.function(tags.variableName), tags.definition(tags.variableName)],
+    color: "#dcdcaa",
+  },
+  {
+    tag: [tags.typeName, tags.className],
+    color: "#4ec9b0",
+  },
+  {
+    tag: tags.tagName,
+    color: "#569cd6",
+    fontWeight: "600",
+  },
+  {
+    tag: [tags.attributeName, tags.propertyName],
+    color: "#9cdcfe",
+  },
+  {
+    tag: [tags.variableName, tags.labelName],
+    color: "#9cdcfe",
+  },
+  {
+    tag: [tags.meta, tags.processingInstruction],
+    color: "#c586c0",
+  },
+  {
+    tag: [tags.operator, tags.punctuation, tags.bracket],
+    color: "#d4d4d4",
   },
   {
     tag: tags.invalid,
-    color: "var(--danger)",
+    color: "#f44747",
     textDecoration: "underline",
   },
-]);
+])
 
 const editorChrome = EditorView.theme(
   {
@@ -85,24 +102,29 @@ const editorChrome = EditorView.theme(
     ".cm-line": {
       padding: "0 21px 0 10px",
     },
+    ".cm-line:nth-child(even)": {
+      backgroundColor: "rgba(138, 169, 232, 0.035)",
+    },
     ".cm-gutters": {
       minHeight: "330px",
       padding: "21px 0",
       border: "0",
-      backgroundColor: "var(--code-bg)",
-      color: "var(--muted)",
+      borderRight: "1px solid rgba(237, 231, 216, 0.10)",
+      backgroundColor: "#080d18",
+      color: "#5f6b80",
     },
     ".cm-lineNumbers .cm-gutterElement": {
-      minWidth: "3ch",
+      minWidth: "3.5ch",
       padding: "0 12px 0 14px",
       textAlign: "right",
     },
     ".cm-activeLine": {
-      backgroundColor: "transparent",
+      backgroundColor: "rgba(124, 217, 168, 0.075)",
     },
     ".cm-activeLineGutter": {
-      backgroundColor: "transparent",
-      color: "var(--text-soft)",
+      backgroundColor: "rgba(124, 217, 168, 0.075)",
+      color: "#d4d4d4",
+      fontWeight: "700",
     },
     ".cm-foldGutter": {
       display: "none",
