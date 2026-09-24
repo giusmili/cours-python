@@ -107,7 +107,6 @@ const editorChrome = EditorView.theme(
     },
     ".cm-gutters": {
       minHeight: "330px",
-      padding: "21px 0",
       border: "0",
       borderRight: "1px solid rgba(237, 231, 216, 0.10)",
       backgroundColor: "#080d18",
