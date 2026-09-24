@@ -67,6 +67,42 @@ const ui = {
     pythonRuntime: "Python · navigateur",
     sandboxedHtml: "HTML isolé",
     webPreview: "Aperçu Web",
+    navTrack: "Terrain",
+    navMethod: "Méthode",
+    navMissions: "Missions",
+    navStart: "Commencer",
+    brandSub: "Missions de code",
+    heroBadge: "Python · HTML · CSS · JavaScript",
+    heroPrimary: "Voir les missions",
+    heroSecondary: "Comment ça marche ↓",
+    statMissions: "missions",
+    statTracks: "parcours",
+    statServer: "code envoyé au serveur",
+    terminalTitle: "apprenti@playground — mission-01",
+    terminalConnected: "Environnement prêt — Python dans le navigateur",
+    terminalRan: "Sortie : Bonjour, apprenti !",
+    terminalValidated: "Mission validée — ✓ débrief débloqué",
+    methodLabel: "La méthode",
+    methodTitle: "On apprend en construisant, pas en écoutant.",
+    methodSteps: [
+      {
+        title: "Tu expérimentes",
+        desc: "Chaque mission démarre par un scénario concret et un code de départ à modifier.",
+      },
+      {
+        title: "Le terrain te répond",
+        desc: "Tu exécutes, tu obtiens un retour immédiat, des indices progressifs si tu bloques.",
+      },
+      {
+        title: "On met les mots",
+        desc: "Une fois la mission validée, le débrief nomme ce que tu viens d’utiliser.",
+      },
+    ],
+    ctaTitle: "Prêt pour la prochaine mission ?",
+    ctaText:
+      "Ta progression et tes brouillons sont sauvegardés localement, dans ton navigateur.",
+    ctaButton: "Reprendre le parcours",
+    footerNote: "Terrain de jeu — La Grande Classe",
   },
   en: {
     eyebrow: "Dev Playground",
@@ -110,6 +146,41 @@ const ui = {
     pythonRuntime: "Python · browser",
     sandboxedHtml: "Sandboxed HTML",
     webPreview: "Web preview",
+    navTrack: "Playground",
+    navMethod: "Method",
+    navMissions: "Missions",
+    navStart: "Start",
+    brandSub: "Coding missions",
+    heroBadge: "Python · HTML · CSS · JavaScript",
+    heroPrimary: "See the missions",
+    heroSecondary: "How it works ↓",
+    statMissions: "missions",
+    statTracks: "tracks",
+    statServer: "code sent to the server",
+    terminalTitle: "learner@playground — mission-01",
+    terminalConnected: "Environment ready — Python in the browser",
+    terminalRan: "Output: Hello, learner!",
+    terminalValidated: "Mission complete — ✓ debrief unlocked",
+    methodLabel: "The method",
+    methodTitle: "We learn by building, not by listening.",
+    methodSteps: [
+      {
+        title: "You experiment",
+        desc: "Every mission starts with a concrete scenario and starter code to change.",
+      },
+      {
+        title: "The playground answers",
+        desc: "Run it, get instant feedback, and reveal progressive hints when you are stuck.",
+      },
+      {
+        title: "We name it",
+        desc: "Once the mission is complete, the debrief names what you just used.",
+      },
+    ],
+    ctaTitle: "Ready for the next mission?",
+    ctaText: "Your progress and drafts are saved locally, in your browser.",
+    ctaButton: "Resume the path",
+    footerNote: "Dev Playground — La Grande Classe",
   },
 } as const;
 
@@ -359,30 +430,101 @@ export function Playground() {
   }, [currentMission.track, currentCode]);
 
   const allComplete = completedCount === trackMissions.length;
+  const totalMissions =
+    missionsForTrack("python").length + missionsForTrack("web").length;
 
   return (
-    <main className="shell">
-      <header className="hero">
-        <div>
-          <p className="eyebrow">{t.eyebrow}</p>
-          <h1>{t.title}</h1>
-          <p className="subtitle">{t.subtitle}</p>
+    <>
+      <nav className="topbar">
+        <a className="brand" href="#top" aria-label="Playground">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-mark" src="/logo_site_2.png" alt="" width={38} height={38} />
+          <span className="brand-text">
+            <strong>Playground</strong>
+            <small>{t.brandSub}</small>
+          </span>
+        </a>
+        <div className="topbar-links">
+          <a href="#terrain">{t.navTrack}</a>
+          <a href="#methode">{t.navMethod}</a>
+          <a href="#missions">{t.navMissions}</a>
+          <div className="locale-switch" aria-label={t.language}>
+            {(["fr", "en"] as Locale[]).map((value) => (
+              <button
+                key={value}
+                className={locale === value ? "active" : ""}
+                onClick={() => setLocale(value)}
+              >
+                {value.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <a className="topbar-cta" href="#missions">
+            {t.navStart}
+          </a>
         </div>
+      </nav>
 
-        <div className="locale-switch" aria-label={t.language}>
-          {(["fr", "en"] as Locale[]).map((value) => (
-            <button
-              key={value}
-              className={locale === value ? "active" : ""}
-              onClick={() => setLocale(value)}
-            >
-              {value.toUpperCase()}
-            </button>
-          ))}
+      <header className="hero" id="top">
+        <div className="hero-inner">
+          <div className="hero-copy">
+            <p className="eyebrow">{t.heroBadge}</p>
+            <h1>{t.title}</h1>
+            <p className="subtitle">{t.subtitle}</p>
+            <div className="hero-actions">
+              <a className="btn-primary" href="#missions">
+                {t.heroPrimary}
+              </a>
+              <a className="btn-outline" href="#methode">
+                {t.heroSecondary}
+              </a>
+            </div>
+            <div className="hero-stats">
+              <div>
+                <strong>{totalMissions}</strong>
+                <span>{t.statMissions}</span>
+              </div>
+              <div>
+                <strong>2</strong>
+                <span>{t.statTracks}</span>
+              </div>
+              <div>
+                <strong>0</strong>
+                <span>{t.statServer}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="terminal" aria-hidden="true">
+            <div className="terminal-bar">
+              <i style={{ background: "#e86a5c" }} />
+              <i style={{ background: "#e8c77e" }} />
+              <i style={{ background: "#7cd9a8" }} />
+              <span>{t.terminalTitle}</span>
+            </div>
+            <div className="terminal-body">
+              <div>
+                <b>$</b> python mission_01.py
+              </div>
+              <div className="dim">{t.terminalConnected}</div>
+              <div>
+                <b>$</b> print(&quot;Bonjour, apprenti !&quot;)
+              </div>
+              <div className="dim">{t.terminalRan}</div>
+              <div>
+                <b>$</b> validate
+              </div>
+              <div className="dim">{t.terminalValidated}</div>
+              <div>
+                <b>$</b> <span className="cursor" />
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      <section className="track-section">
+      <main className="shell">
+      <section className="track-section" id="terrain">
         <div className="section-heading">
           <p className="section-label">{t.chooseTrack}</p>
           <span className="global-progress">
@@ -419,7 +561,7 @@ export function Playground() {
         </div>
       </section>
 
-      <section className="learning-layout">
+      <section className="learning-layout" id="missions">
         <aside className="mission-path" aria-label={t.missionPath}>
           <div className="path-header">
             <span>{track === "python" ? t.python : t.web}</span>
@@ -633,6 +775,35 @@ export function Playground() {
           </div>
         </section>
       )}
-    </main>
+      </main>
+
+      <section className="method" id="methode">
+        <div className="method-inner">
+          <p className="method-label">{t.methodLabel}</p>
+          <h2>{t.methodTitle}</h2>
+          <div className="method-grid">
+            {t.methodSteps.map((step, index) => (
+              <div className="method-step" key={step.title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{step.title}</strong>
+                <p>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="cta">
+        <h2>{t.ctaTitle}</h2>
+        <p>{t.ctaText}</p>
+        <a className="btn-primary" href="#missions">
+          {t.ctaButton}
+        </a>
+      </section>
+
+      <footer className="footer">
+        <span>© 2026 {t.footerNote}</span>
+      </footer>
+    </>
   );
 }
