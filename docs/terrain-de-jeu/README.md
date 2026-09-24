@@ -62,3 +62,4 @@ Le dernier gate navigateur complet réellement validé reste le parcours **P0–
 - `10_demo_interne.md`
 - `11_deploiement_staging.md`
 - `12_extension_promotion_contract.md`
+- `13_python_sandbox_spike.md` — statut du spike d’isolation Python à origine opaque
