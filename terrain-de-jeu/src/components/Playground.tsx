@@ -79,7 +79,7 @@ const ui = {
     statMissions: "missions",
     statTracks: "parcours",
     statServer: "code envoyé au serveur",
-    terminalTitle: "apprenti@playground — mission-01",
+    terminalTitle: "apprenti@playground - mission-01",
     terminalConnected: "Environnement prêt — Python dans le navigateur",
     terminalRan: "Sortie : Bonjour, apprenti !",
     terminalValidated: "Mission validée — ✓ débrief débloqué",
