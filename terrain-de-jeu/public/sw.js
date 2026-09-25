@@ -55,7 +55,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate" || url.pathname === "/pyodide-worker.mjs") {
+  if (
+    request.mode === "navigate" ||
+    url.pathname === "/pyodide-worker.mjs" ||
+    url.pathname.endsWith(".webmanifest")
+  ) {
     event.respondWith(networkFirst(request));
   }
 });
