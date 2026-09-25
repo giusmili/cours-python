@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Roboto_Slab, Work_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -10,6 +10,12 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0e1524",
+};
 
 export const metadata: Metadata = {
   title: "Terrain de jeu Dev",

@@ -689,7 +689,7 @@ a:focus-visible {
 
 @media (max-width: 980px) {
   .learning-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .mission-path {
@@ -1074,6 +1074,188 @@ a:focus-visible {
 @media (max-width: 980px) {
   .hero-inner {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  html {
+    scroll-padding-top: 68px;
+  }
+
+  .topbar {
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-text small {
+    display: none;
+  }
+
+  .topbar-links {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .brand-text strong {
+    font-size: 1rem;
+  }
+
+  .locale-switch button {
+    min-width: 38px;
+    padding: 9px 8px;
+  }
+
+  .topbar-links > a.topbar-cta {
+    padding: 10px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .hero-inner {
+    width: calc(100% - 32px);
+    padding: 36px 0 32px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 9vw, 2.6rem);
+  }
+
+  .subtitle {
+    font-size: 0.98rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-outline {
+    padding: 14px 20px;
+    text-align: center;
+  }
+
+  .hero-stats {
+    gap: 20px 28px;
+    margin-top: 32px;
+  }
+
+  .hero-stats strong {
+    font-size: 1.6rem;
+  }
+
+  .terminal-body {
+    overflow-x: auto;
+    padding: 18px 16px 20px;
+    font-size: 0.78rem;
+  }
+
+  .method-step {
+    padding: 24px 20px;
+  }
+
+  .shell {
+    width: calc(100% - 24px);
+    padding-bottom: 56px;
+  }
+
+  .section-heading {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .track-card {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .locale-switch button {
+    min-height: 44px;
+  }
+
+  .mission-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px 14px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mission-step {
+    flex: 0 0 min(210px, 72%);
+    scroll-snap-align: start;
+    grid-template-columns: 34px minmax(0, 1fr);
+    min-height: 56px;
+  }
+
+  .mission-copy h2 {
+    font-size: clamp(1.45rem, 7vw, 1.9rem);
+  }
+
+  .objective {
+    padding: 13px 14px;
+  }
+
+  .hint-button,
+  .reference-link {
+    padding: 8px 0;
+  }
+
+  textarea {
+    min-height: 240px;
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  .console,
+  .result-pane iframe {
+    min-height: 200px;
+    padding: 16px;
+    font-size: 0.88rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .actions button {
+    flex: 1 1 calc(50% - 9px);
+    min-height: 44px;
+  }
+
+  .actions .ghost {
+    flex: 1 1 100%;
+    margin-right: 0;
+    order: 3;
+  }
+
+  .next-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .debrief {
+    margin: 12px;
+    padding: 16px;
+  }
+
+  .completion-card {
+    padding: 16px;
+  }
+
+  .footer {
+    padding: 24px 16px;
   }
 }
 
