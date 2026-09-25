@@ -1211,10 +1211,23 @@ a:focus-visible {
     padding: 8px 0;
   }
 
-  textarea {
+  .code-editor,
+  .code-editor .cm-editor,
+  .code-editor .cm-editor .cm-content,
+  .code-editor .cm-editor .cm-gutters {
     min-height: 240px;
-    padding: 16px;
+  }
+
+  .code-editor .cm-editor .cm-scroller {
     font-size: 16px;
+  }
+
+  .code-editor .cm-editor .cm-content {
+    padding: 16px 0;
+  }
+
+  .code-editor .cm-editor .cm-line {
+    padding: 0 14px 0 8px;
   }
 
   .console,
