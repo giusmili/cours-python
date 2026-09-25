@@ -18,9 +18,34 @@ export const viewport: Viewport = {
   themeColor: "#0e1524",
 };
 
+const siteDescription = "Missions interactives de développement — Python, HTML, CSS et JavaScript.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://playground-dev.lagrandeclasse.fr"),
   title: "Terrain de jeu Dev",
-  description: "Missions interactives de développement — Python, HTML, CSS et JavaScript.",
+  description: siteDescription,
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Playground — La Grande Classe",
+    title: "Playground — La Grande Classe",
+    description: siteDescription,
+    url: "/",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Logo LGC — Playground, missions interactives de développement",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Playground — La Grande Classe",
+    description: siteDescription,
+    images: ["/og-image.png"],
+  },
   manifest: "/favicon/site.webmanifest",
   icons: {
     icon: [
