@@ -1,0 +1,199 @@
+name: Terrain de jeu CI
+
+on:
+  push:
+    branches:
+      - kevin/missions
+      - "dev/**"
+    paths:
+      - "terrain-de-jeu/**"
+      - "moodle-plugin/mod/lgcplayground/**"
+      - ".github/workflows/playground-ci.yml"
+  pull_request:
+    paths:
+      - "terrain-de-jeu/**"
+      - "moodle-plugin/mod/lgcplayground/**"
+      - "docs/terrain-de-jeu/**"
+      - ".github/workflows/playground-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playground-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-standalone:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terrain-de-jeu
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: terrain-de-jeu/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
+
+      - name: Shellcheck deploy helpers
+        run: shellcheck ops/playground-dev-deploy ops/playground-dev-dispatch ops/playground-dev-request ops/playground-dev-auto-request ops/install-playground-dev-broker scripts/deploy-preview.sh
+
+      - name: Validate preview service permission boundary
+        run: |
+          grep -Fx 'User=root' ops/playground-dev-auto-request.service
+          grep -Fx 'Group=root' ops/playground-dev-auto-request.service
+          grep -Fx 'SupplementaryGroups=moodle-agent' ops/playground-dev-auto-request.service
+          grep -Fx 'CapabilityBoundingSet=' ops/playground-dev-auto-request.service
+          grep -Fx 'd /run/playground-dev 0770 moodle-agent moodle-agent -' ops/playground-dev-tmpfiles.conf
+
+      - name: Build preview image
+        run: docker build -f ops/Dockerfile.preview -t playground-dev:ci .
+
+  verify-moodle-plugin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP syntax
+        run: |
+          find moodle-plugin/mod/lgcplayground -type f -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: XML syntax
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse('moodle-plugin/mod/lgcplayground/db/install.xml')
+          print('install.xml well-formed')
+          PY
+
+      - name: Moodle React/runtime artifacts present
+        run: |
+          test -s moodle-plugin/mod/lgcplayground/js/esm/src/view.tsx
+          test -s moodle-plugin/mod/lgcplayground/js/esm/src/pythonRuntime.ts
+          test -s moodle-plugin/mod/lgcplayground/js/esm/build/view.js
+          test -s moodle-plugin/mod/lgcplayground/js/esm/build/pythonRuntime.js
+          test -s moodle-plugin/mod/lgcplayground/pyodide-worker.mjs
+          test -s moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+  package-moodle-plugin:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/kevin/missions'
+    needs:
+      - verify-moodle-plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: terrain-de-jeu/package-lock.json
+
+      - name: Install pinned runtime dependencies
+        working-directory: terrain-de-jeu
+        run: npm ci
+
+      - name: Prepare self-hosted Pyodide assets
+        run: node moodle-plugin/mod/lgcplayground/tools/prepare-pyodide.mjs
+
+      - name: Build deterministic Moodle plugin ZIP
+        run: |
+          python3 moodle-plugin/mod/lgcplayground/tools/package-plugin.py \
+            --output-dir dist/playground-staging \
+            --commit "$GITHUB_SHA"
+          cat dist/playground-staging/SHA256SUMS
+
+      - name: Verify package contract
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import zipfile
+
+          root = pathlib.Path('dist/playground-staging')
+          manifest_path = next(root.glob('lgcplayground-*.manifest.json'))
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          archive = root / manifest['archive']
+          promoter_root = next(root.glob('lgcplayground-promoter-*'))
+          promoter_manifest = json.loads(
+              (promoter_root / 'manifest.json').read_text(encoding='utf-8')
+          )
+
+          assert manifest['repository'] == 'giusmili/cours-python'
+          assert manifest['component'] == 'mod_lgcplayground'
+          assert manifest['commit'] == os.environ['EXPECTED_SHA']
+          assert archive.is_file() and archive.stat().st_size > 0
+          assert promoter_manifest['schema_version'] == 1
+          assert promoter_manifest['repository'] == 'giusmili/cours-python'
+          assert promoter_manifest['commit'] == os.environ['EXPECTED_SHA']
+          assert promoter_manifest['extension']['component'] == 'mod_lgcplayground'
+          assert promoter_manifest['extension']['type'] == 'mod'
+
+          with zipfile.ZipFile(archive) as zf:
+              names = [name for name in zf.namelist() if not name.endswith('/')]
+              assert names
+              assert all(name.startswith('lgcplayground/') for name in names)
+              required = {
+                  'lgcplayground/version.php',
+                  'lgcplayground/view.php',
+                  'lgcplayground/pyodide-worker.mjs',
+                  'lgcplayground/pyodide/pyodide.mjs',
+                  'lgcplayground/pyodide/pyodide.asm.wasm',
+                  'lgcplayground/pyodide/python_stdlib.zip',
+              }
+              assert required.issubset(names)
+
+          expected_promoter = {
+              entry['path']: entry['sha256']
+              for entry in promoter_manifest['files']
+          }
+          actual_promoter = {}
+          for path in sorted((promoter_root / 'plugin').rglob('*')):
+              if path.is_file():
+                  relative = path.relative_to(promoter_root).as_posix()
+                  actual_promoter[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+          assert actual_promoter == expected_promoter
+          assert {name.removeprefix('lgcplayground/') for name in names} == {
+              name.removeprefix('plugin/') for name in actual_promoter
+          }
+
+          print(
+              f'verified {archive.name} and Promoter release: '
+              f'{len(names)} files'
+          )
+          PY
+
+      - name: Upload STAGING-ready Moodle plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: lgcplayground-staging-${{ github.sha }}
+          path: dist/playground-staging/
+          if-no-files-found: error
+          retention-days: 14

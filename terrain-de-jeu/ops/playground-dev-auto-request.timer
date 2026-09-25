@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll for a new CI-green Playground preview commit
+
+[Timer]
+OnActiveSec=30s
+OnUnitActiveSec=120s
+AccuracySec=5s
+RandomizedDelaySec=5s
+Unit=playground-dev-auto-request.service
+
+[Install]
+WantedBy=timers.target

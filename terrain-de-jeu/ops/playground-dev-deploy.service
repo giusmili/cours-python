@@ -1,0 +1,27 @@
+[Unit]
+Description=Bounded playground-dev deployment broker
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+ConditionPathExists=/run/playground-dev/deploy.request
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+SupplementaryGroups=moodle-agent
+ExecStart=/usr/local/sbin/playground-dev-dispatch
+TimeoutStartSec=30m
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=read-only
+ProtectSystem=full
+ReadWritePaths=/opt/playground-dev-source /var/lib/playground-dev /run/playground-dev /run/docker.sock
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

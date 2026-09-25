@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 1,
+  "id": "python-basics-v1",
+  "track": "python",
+  "missions": [
+    {
+      "id": "python-00-terminal",
+      "order": 0,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Réveiller le terminal",
+        "en": "Wake the terminal"
+      },
+      "scenario": {
+        "fr": "Le terminal de secours est muet. Le poste de contrôle attend son signal de vie.",
+        "en": "The backup terminal is silent. Control is waiting for its heartbeat."
+      },
+      "objective": {
+        "fr": "Fais afficher exactement SYSTEM ONLINE.",
+        "en": "Print exactly SYSTEM ONLINE."
+      },
+      "starter": "# Mission 0\n\n",
+      "hints": [
+        {
+          "fr": "La fonction print() écrit du texte dans la sortie standard.",
+          "en": "The print() function writes text to standard output."
+        },
+        {
+          "fr": "Le texte doit être placé entre guillemets : print(\"...\").",
+          "en": "Put the text between quotes: print(\"...\")."
+        }
+      ],
+      "debrief": {
+        "fr": "Tu viens d'utiliser print(), une chaîne de caractères et la boucle essentielle modifier → exécuter → lire la sortie.",
+        "en": "You just used print(), a string, and the essential edit → run → read-output loop."
+      },
+      "bonus": {
+        "fr": "Ajoute une seconde ligne qui affiche READY après SYSTEM ONLINE.",
+        "en": "Add a second line that prints READY after SYSTEM ONLINE."
+      },
+      "concepts": [
+        {
+          "fr": "print()",
+          "en": "print()"
+        },
+        {
+          "fr": "chaîne",
+          "en": "string"
+        },
+        {
+          "fr": "exécution",
+          "en": "execution"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Introduction",
+          "en": "Gius sheet — Introduction"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/01-introduction/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "SYSTEM ONLINE"
+      }
+    },
+    {
+      "id": "python-01-variables",
+      "order": 1,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Identifier le pilote",
+        "en": "Identify the pilot"
+      },
+      "scenario": {
+        "fr": "Le terminal répond, mais le poste de contrôle ne sait toujours pas qui pilote la station. Les deux informations doivent être stockées proprement avant transmission.",
+        "en": "The terminal is alive, but control still does not know who is piloting the station. Store the two pieces of information cleanly before transmitting them."
+      },
+      "objective": {
+        "fr": "Modifie les deux variables pour afficher exactement PILOT Ada AGE 36.",
+        "en": "Change the two variables so the output is exactly PILOT Ada AGE 36."
+      },
+      "starter": "# Mission 1\npilot_name = \"?\"\npilot_age = 0\n\nprint(\"PILOT\", pilot_name, \"AGE\", pilot_age)\n",
+      "hints": [
+        {
+          "fr": "Une chaîne de caractères se place entre guillemets, par exemple pilot_name = \"Ada\".",
+          "en": "A string goes between quotes, for example pilot_name = \"Ada\"."
+        },
+        {
+          "fr": "Un entier comme 36 n'a pas besoin de guillemets.",
+          "en": "An integer such as 36 does not need quotes."
+        }
+      ],
+      "debrief": {
+        "fr": "Une variable associe un nom à une valeur. Ici pilot_name contient une str et pilot_age un int ; Python détermine leur type à partir des valeurs assignées.",
+        "en": "A variable binds a name to a value. Here pilot_name holds a str and pilot_age an int; Python determines their types from the assigned values."
+      },
+      "bonus": {
+        "fr": "Ajoute une variable pilot_active = True puis affiche-la sur une seconde ligne.",
+        "en": "Add pilot_active = True and print it on a second line."
+      },
+      "concepts": [
+        {
+          "fr": "variable",
+          "en": "variable"
+        },
+        {
+          "fr": "str",
+          "en": "str"
+        },
+        {
+          "fr": "int",
+          "en": "int"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Variables et types",
+          "en": "Gius sheet — Variables and types"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/02-variables-et-types/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "PILOT Ada AGE 36"
+      }
+    },
+    {
+      "id": "python-02-types",
+      "order": 2,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Réparer les capteurs",
+        "en": "Repair the sensors"
+      },
+      "scenario": {
+        "fr": "Deux capteurs envoient des valeurs lisibles, mais dans le mauvais type. Le programme de contrôle refuse les chaînes de caractères à leur place.",
+        "en": "Two sensors send readable values, but with the wrong types. The control program refuses strings in their place."
+      },
+      "objective": {
+        "fr": "Corrige uniquement les valeurs pour que le programme affiche float puis bool.",
+        "en": "Fix only the values so the program prints float and then bool."
+      },
+      "starter": "# Mission 2\ntemperature = \"21.5\"\ndoors_locked = \"True\"\n\nprint(type(temperature).__name__)\nprint(type(doors_locked).__name__)\n",
+      "hints": [
+        {
+          "fr": "Les guillemets transforment 21.5 en chaîne. Un nombre décimal Python s'écrit directement : 21.5.",
+          "en": "Quotes turn 21.5 into a string. A Python decimal number is written directly: 21.5."
+        },
+        {
+          "fr": "Le booléen vrai s'écrit True, avec une majuscule et sans guillemets.",
+          "en": "The true boolean is written True, capitalised and without quotes."
+        }
+      ],
+      "debrief": {
+        "fr": "La valeur assignée détermine ici le type : 21.5 est un float et True un bool. Le même texte entre guillemets aurait été une str.",
+        "en": "The assigned value determines the type here: 21.5 is a float and True a bool. The same text inside quotes would have been a str."
+      },
+      "bonus": {
+        "fr": "Ajoute crew_count = 3 et affiche le nom de son type avec la même technique.",
+        "en": "Add crew_count = 3 and print its type name using the same technique."
+      },
+      "concepts": [
+        {
+          "fr": "float",
+          "en": "float"
+        },
+        {
+          "fr": "bool",
+          "en": "bool"
+        },
+        {
+          "fr": "type()",
+          "en": "type()"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Variables et types",
+          "en": "Gius sheet — Variables and types"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/02-variables-et-types/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "float\nbool"
+      }
+    },
+    {
+      "id": "python-03-conditions",
+      "order": 3,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Déclencher le refroidissement",
+        "en": "Trigger the cooling system"
+      },
+      "scenario": {
+        "fr": "La température du module grimpe. Le contrôleur connaît la valeur du capteur, mais sa décision automatique n’est pas encore câblée.",
+        "en": "The module temperature is rising. The controller knows the sensor value, but its automatic decision is not wired yet."
+      },
+      "objective": {
+        "fr": "Remplace la condition provisoire pour que le programme affiche exactement COOLING ON.",
+        "en": "Replace the temporary condition so the program prints exactly COOLING ON."
+      },
+      "starter": "# Mission 3\ntemperature = 32\n\nif False:\n    print(\"COOLING ON\")\nelse:\n    print(\"TEMP OK\")\n",
+      "hints": [
+        {
+          "fr": "La branche if doit être vraie lorsque temperature dépasse 30.",
+          "en": "The if branch must be true when temperature is above 30."
+        },
+        {
+          "fr": "Une comparaison peut s’écrire temperature > 30.",
+          "en": "A comparison can be written temperature > 30."
+        }
+      ],
+      "debrief": {
+        "fr": "if exécute son bloc lorsque la condition est vraie ; sinon else prend le relais. Ici, la comparaison temperature > 30 produit un booléen.",
+        "en": "if runs its block when the condition is true; otherwise else takes over. Here, temperature > 30 produces a boolean."
+      },
+      "bonus": {
+        "fr": "Ajoute un elif pour afficher WARNING entre 25 et 30 degrés.",
+        "en": "Add an elif branch that prints WARNING between 25 and 30 degrees."
+      },
+      "concepts": [
+        {
+          "fr": "if / else",
+          "en": "if / else"
+        },
+        {
+          "fr": "comparaison",
+          "en": "comparison"
+        },
+        {
+          "fr": "booléen",
+          "en": "boolean"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Conditions",
+          "en": "Gius sheet — Conditions"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/03-conditions/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "COOLING ON"
+      }
+    },
+    {
+      "id": "python-04-for-loop",
+      "order": 4,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Scanner les secteurs",
+        "en": "Scan the sectors"
+      },
+      "scenario": {
+        "fr": "Le diagnostic doit répéter la même vérification sur trois secteurs. Copier trois fois la même instruction fonctionnerait, mais le programme doit apprendre à répéter.",
+        "en": "The diagnostic must repeat the same check across three sectors. Copying the same instruction three times would work, but the program should learn to repeat."
+      },
+      "objective": {
+        "fr": "Corrige la boucle pour afficher SCAN 0, SCAN 1 puis SCAN 2, une ligne par secteur.",
+        "en": "Fix the loop so it prints SCAN 0, SCAN 1, then SCAN 2, one sector per line."
+      },
+      "starter": "# Mission 4\nfor sector in range(0):\n    print(\"SCAN\", sector)\n",
+      "hints": [
+        {
+          "fr": "range(n) fournit les entiers de 0 jusqu’à n - 1.",
+          "en": "range(n) provides the integers from 0 up to n - 1."
+        },
+        {
+          "fr": "Pour obtenir 0, 1 et 2, utilise range(3).",
+          "en": "To get 0, 1 and 2, use range(3)."
+        }
+      ],
+      "debrief": {
+        "fr": "for répète un bloc pour chaque élément d’une séquence. range(3) produit 0, 1, 2 : la même instruction est donc exécutée trois fois avec une valeur différente.",
+        "en": "for repeats a block for each item in a sequence. range(3) produces 0, 1, 2, so the same instruction runs three times with a different value."
+      },
+      "bonus": {
+        "fr": "Refais le même résultat avec un compteur et une boucle while.",
+        "en": "Produce the same output again using a counter and a while loop."
+      },
+      "concepts": [
+        {
+          "fr": "for",
+          "en": "for"
+        },
+        {
+          "fr": "range()",
+          "en": "range()"
+        },
+        {
+          "fr": "répétition",
+          "en": "repetition"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Boucles",
+          "en": "Gius sheet — Loops"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/04-boucles/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "SCAN 0\nSCAN 1\nSCAN 2"
+      }
+    },
+    {
+      "id": "python-05-functions",
+      "order": 5,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Calibrer le niveau de risque",
+        "en": "Calibrate the risk level"
+      },
+      "scenario": {
+        "fr": "Le poste de contrôle reçoit des scores de risque toute la journée. La même règle doit pouvoir être réutilisée sans recopier trois fois la décision.",
+        "en": "Control receives risk scores all day. The same rule must be reusable without copying the decision three times."
+      },
+      "objective": {
+        "fr": "Complète risk_level(score) pour retourner LOW sous 3, MEDIUM de 3 à 6, puis HIGH à partir de 7. Le programme doit afficher LOW, MEDIUM, HIGH.",
+        "en": "Complete risk_level(score) so it returns LOW below 3, MEDIUM from 3 to 6, then HIGH from 7. The program must print LOW, MEDIUM, HIGH."
+      },
+      "starter": "# Mission 5\ndef risk_level(score):\n    # TODO\n    return \"?\"\n\nprint(risk_level(2))\nprint(risk_level(5))\nprint(risk_level(9))\n",
+      "hints": [
+        {
+          "fr": "Une fonction reçoit ici score comme paramètre et renvoie une valeur avec return.",
+          "en": "The function receives score as a parameter and sends a value back with return."
+        },
+        {
+          "fr": "Teste d’abord score < 3, puis score < 7. Le dernier cas peut être géré avec else.",
+          "en": "Test score < 3 first, then score < 7. The final case can be handled with else."
+        }
+      ],
+      "debrief": {
+        "fr": "Tu as encapsulé une règle dans une fonction réutilisable. Le paramètre change à chaque appel ; return renvoie le résultat au code qui a appelé la fonction.",
+        "en": "You wrapped a rule in a reusable function. The parameter changes on each call; return sends the result back to the calling code."
+      },
+      "bonus": {
+        "fr": "Ajoute un quatrième appel avec le score 3 et vérifie qu’il renvoie MEDIUM.",
+        "en": "Add a fourth call with score 3 and check that it returns MEDIUM."
+      },
+      "concepts": [
+        {
+          "fr": "fonction",
+          "en": "function"
+        },
+        {
+          "fr": "paramètre",
+          "en": "parameter"
+        },
+        {
+          "fr": "return",
+          "en": "return"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Fonctions",
+          "en": "Gius sheet — Functions"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/05-fonctions/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "LOW\nMEDIUM\nHIGH"
+      }
+    },
+    {
+      "id": "python-06-final-incident",
+      "order": 6,
+      "fileName": "main.py",
+      "title": {
+        "fr": "Résoudre l’incident final",
+        "en": "Resolve the final incident"
+      },
+      "scenario": {
+        "fr": "Une surchauffe touche plusieurs modules. Il faut maintenant combiner les briques du parcours pour compter automatiquement les secteurs qui dépassent le seuil critique.",
+        "en": "Several modules are overheating. Now combine the pieces from the track to automatically count the sectors above the critical threshold."
+      },
+      "objective": {
+        "fr": "Complète count_alerts(values) pour parcourir la liste, compter les températures strictement supérieures à 30 et afficher exactement ALERTS 2.",
+        "en": "Complete count_alerts(values) to loop through the list, count temperatures strictly above 30 and print exactly ALERTS 2."
+      },
+      "starter": "# Mission 6\ntemperatures = [22, 31, 27, 35]\n\ndef count_alerts(values):\n    alerts = 0\n    # TODO\n    return alerts\n\nprint(\"ALERTS\", count_alerts(temperatures))\n",
+      "hints": [
+        {
+          "fr": "Parcours values avec for temperature in values:.",
+          "en": "Loop through values with for temperature in values:."
+        },
+        {
+          "fr": "Dans la boucle, si temperature > 30, augmente alerts de 1.",
+          "en": "Inside the loop, if temperature > 30, increase alerts by 1."
+        }
+      ],
+      "debrief": {
+        "fr": "Cette mission combine liste, boucle, condition, compteur et fonction. Tu as transformé plusieurs notions isolées en un petit outil complet.",
+        "en": "This mission combines a list, loop, condition, counter and function. You turned separate concepts into a small complete tool."
+      },
+      "bonus": {
+        "fr": "Fais aussi retourner la température maximale sans utiliser max(), puis affiche-la sur une seconde ligne.",
+        "en": "Also return the highest temperature without using max(), then print it on a second line."
+      },
+      "concepts": [
+        {
+          "fr": "liste",
+          "en": "list"
+        },
+        {
+          "fr": "boucle",
+          "en": "loop"
+        },
+        {
+          "fr": "condition",
+          "en": "condition"
+        },
+        {
+          "fr": "fonction",
+          "en": "function"
+        }
+      ],
+      "reference": {
+        "label": {
+          "fr": "Fiche Gius — Listes et dictionnaires",
+          "en": "Gius sheet — Lists and dictionaries"
+        },
+        "href": "https://github.com/giusmili/cours-python/blob/master/06-listes-et-dictionnaires/notes.md"
+      },
+      "validation": {
+        "kind": "python",
+        "expectedOutput": "ALERTS 2"
+      }
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly SOURCE_CONFIG='/etc/playground-dev-source.env'
+readonly SOURCE_DIR='/opt/playground-dev-source'
+readonly STATE_DIR='/var/lib/playground-dev'
+readonly STATE_FILE="$STATE_DIR/deployed_commit"
+readonly ENV_FILE='/etc/playground-dev/preview.env'
+readonly DOCKERFILE='/usr/local/libexec/playground-dev-Dockerfile'
+readonly PUBLIC_BASE='https://playground-dev.lagrandeclasse.fr'
+readonly PUBLIC_HEALTH="$PUBLIC_BASE/api/health"
+readonly LIVE_CONTAINER='playground-dev'
+
+log() { printf '[playground-dev] %s\n' "$*"; }
+fail() { printf '[playground-dev] ERROR: %s\n' "$*" >&2; exit 1; }
+
+requested_sha="${1:-}"
+[[ "$requested_sha" =~ ^[0-9a-f]{40}$ ]] || fail 'expected one 40-hex commit SHA'
+
+[ -r "$SOURCE_CONFIG" ] || fail "missing source configuration: $SOURCE_CONFIG"
+# shellcheck disable=SC1090
+source "$SOURCE_CONFIG"
+
+REPO_URL="${PLAYGROUND_REPO_URL:-https://github.com/giusmili/cours-python.git}"
+BRANCH="${PLAYGROUND_BRANCH:-kevin/missions}"
+GIT_SSH_KEY="${PLAYGROUND_GIT_SSH_KEY:-}"
+GIT_KNOWN_HOSTS="${PLAYGROUND_GIT_KNOWN_HOSTS:-/etc/playground-dev-github-known_hosts}"
+GITHUB_TOKEN_FILE="${PLAYGROUND_GITHUB_TOKEN_FILE:-}"
+
+case "$REPO_URL" in
+  'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;
+  *) fail "unexpected repository URL: $REPO_URL" ;;
+esac
+[ "$BRANCH" = 'kevin/missions' ] || fail "unexpected branch: $BRANCH"
+
+if [[ "$REPO_URL" == git@github.com:* ]]; then
+  [ -n "$GIT_SSH_KEY" ] || fail 'private SSH source requires PLAYGROUND_GIT_SSH_KEY'
+  [ -r "$GIT_SSH_KEY" ] || fail "unreadable deploy key: $GIT_SSH_KEY"
+  [ -r "$GIT_KNOWN_HOSTS" ] || fail "unreadable known_hosts: $GIT_KNOWN_HOSTS"
+  export GIT_SSH_COMMAND="ssh -i $GIT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$GIT_KNOWN_HOSTS"
+fi
+
+mkdir -p "$STATE_DIR" "$STATE_DIR/docker-config"
+chmod 0700 "$STATE_DIR/docker-config"
+export DOCKER_CONFIG="$STATE_DIR/docker-config"
+
+exec 9>/run/playground-dev/deploy.lock
+flock -n 9 || fail 'another playground deployment is already running'
+
+[ -f "$ENV_FILE" ] || fail "missing preview environment: $ENV_FILE"
+[ -f "$DOCKERFILE" ] || fail "missing root-owned Dockerfile: $DOCKERFILE"
+[ "$(stat -c '%U:%G:%a' "$DOCKERFILE")" = 'root:root:644' ] || fail 'preview Dockerfile ownership/mode is not root:root:644'
+[ -S /var/run/docker.sock ] || fail 'Docker socket unavailable'
+docker info >/dev/null 2>&1 || fail 'Docker daemon unavailable'
+docker network inspect traefik_network >/dev/null 2>&1 || fail 'traefik_network is unavailable'
+
+if [ ! -d "$SOURCE_DIR/.git" ]; then
+  log 'creating dedicated source clone'
+  git clone --branch "$BRANCH" --single-branch "$REPO_URL" "$SOURCE_DIR"
+fi
+
+cd "$SOURCE_DIR"
+GIT=(git -c safe.directory="$SOURCE_DIR")
+
+remote="$("${GIT[@]}" remote get-url origin 2>/dev/null || true)"
+case "$remote" in
+  'https://github.com/giusmili/cours-python.git'|'git@github.com:giusmili/cours-python.git') ;;
+  *) fail "unexpected origin: $remote" ;;
+esac
+if [ "$remote" != "$REPO_URL" ]; then
+  log 'updating deploy clone origin to configured read-only source'
+  "${GIT[@]}" remote set-url origin "$REPO_URL"
+fi
+
+if [ -n "$("${GIT[@]}" status --porcelain --untracked-files=all)" ]; then
+  fail 'deploy source clone is dirty; refusing to overwrite unknown work'
+fi
+
+log "fetching origin/$BRANCH"
+"${GIT[@]}" fetch --prune origin "$BRANCH"
+
+remote_sha="$("${GIT[@]}" rev-parse "origin/$BRANCH")"
+[ "$requested_sha" = "$remote_sha" ] || fail "requested SHA is stale; current $BRANCH is $remote_sha"
+
+"${GIT[@]}" cat-file -e "$requested_sha^{commit}" 2>/dev/null || fail 'requested commit is unavailable'
+"${GIT[@]}" merge-base --is-ancestor "$requested_sha" "origin/$BRANCH" || fail 'requested commit is outside kevin/missions history'
+
+log 'verifying successful Terrain de jeu CI for the requested SHA'
+TARGET_SHA="$requested_sha" GITHUB_TOKEN_FILE="$GITHUB_TOKEN_FILE" python3 - <<'PY'
+import json
+import os
+import pathlib
+import sys
+import urllib.error
+import urllib.request
+
+sha = os.environ["TARGET_SHA"]
+token_file = os.environ.get("GITHUB_TOKEN_FILE", "").strip()
+headers = {
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "playground-dev-deploy",
+}
+if token_file:
+    path = pathlib.Path(token_file)
+    if not path.is_file():
+        print(f"configured GitHub token file is missing: {path}", file=sys.stderr)
+        raise SystemExit(1)
+    token = path.read_text(encoding="utf-8").strip()
+    if not token:
+        print(f"configured GitHub token file is empty: {path}", file=sys.stderr)
+        raise SystemExit(1)
+    headers["Authorization"] = f"Bearer {token}"
+
+url = (
+    "https://api.github.com/repos/giusmili/cours-python/actions/runs"
+    f"?head_sha={sha}&status=completed&per_page=20"
+)
+request = urllib.request.Request(url, headers=headers)
+try:
+    with urllib.request.urlopen(request, timeout=20) as response:
+        payload = json.load(response)
+except urllib.error.HTTPError as exc:
+    print(
+        f"cannot verify GitHub Actions status: HTTP {exc.code}; "
+        "configure a read-only Actions token when the repository is private",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+except Exception as exc:
+    print(f"cannot verify GitHub Actions status: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+ok = any(
+    run.get("name") == "Terrain de jeu CI"
+    and run.get("conclusion") == "success"
+    and run.get("event") == "push"
+    and run.get("head_sha") == sha
+    and run.get("head_branch") == "kevin/missions"
+    for run in payload.get("workflow_runs", [])
+)
+if not ok:
+    print("no successful Terrain de jeu CI push run found for this SHA", file=sys.stderr)
+    raise SystemExit(1)
+PY
+
+current="$(cat "$STATE_FILE" 2>/dev/null || true)"
+if [ "$current" = "$requested_sha" ]; then
+  log "already deployed: $requested_sha"
+  exit 0
+fi
+
+if [ -n "$current" ]; then
+  [[ "$current" =~ ^[0-9a-f]{40}$ ]] || fail 'deployed state contains an invalid SHA'
+  "${GIT[@]}" cat-file -e "$current^{commit}" 2>/dev/null || fail "deployed state refers to unavailable commit: $current"
+  "${GIT[@]}" merge-base --is-ancestor "$current" "$requested_sha" || fail 'rollback/non-fast-forward deployment refused'
+fi
+
+log "checking out candidate $requested_sha"
+"${GIT[@]}" reset --hard "$requested_sha" >/dev/null
+cd "$SOURCE_DIR/terrain-de-jeu"
+
+short_sha="${requested_sha:0:12}"
+image="playground-dev:$short_sha"
+previous_tag=''
+if [ -n "$current" ]; then previous_tag="${current:0:12}"; fi
+
+log "building $image with root-owned Dockerfile"
+docker build --file "$DOCKERFILE" --tag "$image" .
+
+health_args=(
+  --health-cmd "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+  --health-interval 5s
+  --health-timeout 3s
+  --health-retries 10
+  --health-start-period 5s
+)
+
+wait_healthy() {
+  local container="$1"
+  local status=''
+  for _ in $(seq 1 60); do
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || true)"
+    if [ "$status" = 'healthy' ]; then return 0; fi
+    if [ "$status" = 'unhealthy' ]; then return 1; fi
+    sleep 2
+  done
+  return 1
+}
+
+candidate="playground-dev-candidate-$short_sha"
+docker rm -f "$candidate" >/dev/null 2>&1 || true
+
+log 'smoke-testing candidate image before swap'
+docker run -d \
+  --name "$candidate" \
+  --env-file "$ENV_FILE" \
+  --env NODE_ENV=production \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  "${health_args[@]}" \
+  "$image" >/dev/null
+
+if ! wait_healthy "$candidate"; then
+  docker logs --tail=120 "$candidate" || true
+  docker rm -f "$candidate" >/dev/null 2>&1 || true
+  fail 'candidate container did not become healthy'
+fi
+docker rm -f "$candidate" >/dev/null
+
+run_live() {
+  local tag="$1"
+  local live_image="playground-dev:$tag"
+
+  docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+  docker run -d \
+    --name "$LIVE_CONTAINER" \
+    --network traefik_network \
+    --env-file "$ENV_FILE" \
+    --env NODE_ENV=production \
+    --restart unless-stopped \
+    --cap-drop ALL \
+    --security-opt no-new-privileges:true \
+    "${health_args[@]}" \
+    --label 'traefik.enable=true' \
+    --label 'traefik.docker.network=traefik_network' \
+    --label 'traefik.http.routers.playground-dev.rule=Host(`playground-dev.lagrandeclasse.fr`)' \
+    --label 'traefik.http.routers.playground-dev.entrypoints=websecure' \
+    --label 'traefik.http.routers.playground-dev.tls=true' \
+    --label 'traefik.http.routers.playground-dev.tls.certresolver=letsencrypt' \
+    --label 'traefik.http.services.playground-dev.loadbalancer.server.port=3000' \
+    --label 'traefik.http.routers.playground-dev-http.rule=Host(`playground-dev.lagrandeclasse.fr`)' \
+    --label 'traefik.http.routers.playground-dev-http.entrypoints=web' \
+    --label 'traefik.http.routers.playground-dev-http.middlewares=playground-dev-https-redirect' \
+    --label 'traefik.http.middlewares.playground-dev-https-redirect.redirectscheme.scheme=https' \
+    "$live_image" >/dev/null
+}
+
+rollback() {
+  if [ -z "$previous_tag" ]; then
+    docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+    return
+  fi
+  if ! docker image inspect "playground-dev:$previous_tag" >/dev/null 2>&1; then
+    log "rollback image playground-dev:$previous_tag unavailable"
+    docker rm -f "$LIVE_CONTAINER" >/dev/null 2>&1 || true
+    return
+  fi
+  log "rolling back to playground-dev:$previous_tag"
+  run_live "$previous_tag" || true
+}
+
+log 'swapping live preview container'
+if ! run_live "$short_sha"; then
+  rollback
+  fail 'could not start live container'
+fi
+
+if ! wait_healthy "$LIVE_CONTAINER"; then
+  docker logs --tail=120 "$LIVE_CONTAINER" || true
+  rollback
+  fail 'live container did not become healthy'
+fi
+
+log 'checking public HTTPS health through Traefik'
+https_ok=''
+for _ in $(seq 1 30); do
+  if curl --fail --silent --show-error --max-time 10 "$PUBLIC_HEALTH" >/dev/null 2>&1; then
+    https_ok='yes'
+    break
+  fi
+  sleep 2
+done
+if [ "$https_ok" != 'yes' ]; then
+  rollback
+  fail 'public HTTPS healthcheck failed'
+fi
+
+root_status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 "$PUBLIC_BASE/" || true)"
+if [ "$root_status" != '401' ]; then
+  rollback
+  fail "preview root is expected to require authentication (got HTTP $root_status)"
+fi
+
+printf '%s\n' "$requested_sha" > "$STATE_FILE"
+chmod 0644 "$STATE_FILE"
+
+log "deployed $requested_sha successfully"
+docker ps --filter "name=^/$LIVE_CONTAINER$" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'

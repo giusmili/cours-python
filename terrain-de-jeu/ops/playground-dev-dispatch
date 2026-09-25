@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly REQUEST='/run/playground-dev/deploy.request'
+readonly HOST_RUN='/usr/local/libexec/playground-agentctl-host-run'
+readonly WORKER='/usr/local/libexec/playground-agentctl-worker'
+readonly CHILD='/usr/local/libexec/playground-dev-deploy'
+
+fail() { printf '[playground-dispatch] ERROR: %s\n' "$*" >&2; exit 1; }
+
+[ -f "$REQUEST" ] || fail 'request file is missing'
+
+mapfile -t lines < "$REQUEST"
+rm -f "$REQUEST"
+
+[ "${#lines[@]}" -eq 1 ] || fail 'request must contain exactly one line'
+sha="${lines[0]}"
+[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || fail 'request contains an invalid SHA'
+
+for path in "$HOST_RUN" "$WORKER" "$CHILD"; do
+  [ -x "$path" ] || fail "missing executable: $path"
+done
+
+export AGENTCTL_WORKER_CONFIG='/etc/playground-dev/agentctl-worker.env'
+
+exec "$HOST_RUN" \
+  --worker "$WORKER" \
+  --project cours-python-playground-deploy \
+  --owner systemd:playground-dev-deploy \
+  --resource host:vps-lgc/git \
+  --resource host:vps-lgc/docker \
+  --resource deploy:vps-lgc/playground-dev \
+  --resource service:playground-dev \
+  --ttl 600 \
+  --heartbeat-interval 20 \
+  --control-timeout 15 \
+  -- "$CHILD" "$sha"
